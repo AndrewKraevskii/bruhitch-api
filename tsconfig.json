@@ -5,13 +5,12 @@
     "target": "es6",
     "noImplicitAny": true,
     "moduleResolution": "node",
-    "sourceMap": true,
+    "sourceMap": false,
     "outDir": "build",
-    "baseUrl": ".",
     "paths": {
       "*": ["node_modules/*"]
     },
     "skipLibCheck": true
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*.ts", "src/**/*.d.ts"]
 }
