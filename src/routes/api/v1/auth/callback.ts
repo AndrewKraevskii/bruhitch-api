@@ -49,7 +49,7 @@ callback.get('/', async (req, res) => {
     return res.status(maybeError.status).json(getErrorMessage(maybeError.message));
   const userInfo = resData as UserData;
 
-  res.status(StatusCodes.OK).json({ query: req.query });
+  res.status(StatusCodes.PERMANENT_REDIRECT).redirect('/');
 });
 
 export default callback;

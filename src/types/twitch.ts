@@ -17,12 +17,13 @@ export type OAuthToken = {
   access_token: string;
   expires_in: number;
   id_token: string;
+  nonce?: string;
   refresh_token: string;
   scope: TwitchScope[];
   token_type: string;
 };
 
-export type RefreshToken = Omit<OAuthToken, 'id_token'>;
+export type RefreshToken = Omit<Omit<OAuthToken, 'id_token'>, 'nonce'>;
 
 export type TwitchError = { status: number; message: string };
 
