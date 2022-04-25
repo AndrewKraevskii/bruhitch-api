@@ -5,3 +5,14 @@ $ cd ..
 $ npm install vercel -g
 $ vercel
 ```
+
+## Env variables
+
+- `TWITCH_CLIENT_ID`
+- `TWITCH_SECRET_KEY`
+- `DATABASE_URL`
+- `SECRET_KEY`
+
+## Todo list
+
+- [ ] Add EventSub

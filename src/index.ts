@@ -1,3 +1,4 @@
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import { config } from 'dotenv';
 import express from 'express';
@@ -10,6 +11,7 @@ const port = process.env.PORT || 3005; // default port to listen
 
 app.use(cors());
 app.use(express.json());
+app.use(cookieParser());
 
 app.use('/api/v1', apiV1);
 

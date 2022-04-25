@@ -18,9 +18,14 @@ const claims: object = {
 login.get('/', async (req, res) => {
   const url = new URL('https://id.twitch.tv/oauth2/authorize');
 
+  let host = req.headers.host?.includes('localhost')
+    ? 'http://localhost:3005/api/v1/auth/callback'
+    : 'https://bruhitch.vercel.app/api/v1/auth/callback';
+
+
   url.searchParams.append('claims', JSON.stringify(claims));
   url.searchParams.append('client_id', getEnv(Environment.TwitchClientId));
-  url.searchParams.append('redirect_uri', getEnv(Environment.RedirectUri));
+  url.searchParams.append('redirect_uri', host);
   url.searchParams.append('response_type', 'code');
   url.searchParams.append('scope', getScopes().join(' '));
 
