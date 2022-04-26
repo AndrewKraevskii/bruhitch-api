@@ -1,34 +1,37 @@
-import { RefreshToken } from '@prisma/client';
+import { RefreshToken, User } from '@prisma/client';
 import { Router } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { decodeFromBase64 } from '../../../../lib/base64';
 import { prisma } from '../../../../lib/db';
-import { generateJWTToken, generateRefreshToken, verifyJWTToken } from '../../../../lib/jwt';
+import { getErrorMessage } from '../../../../lib/error';
+import {
+  generateJWTToken,
+  generateRefreshToken,
+  getDataFromJWTToken,
+  verifyJWTToken
+} from '../../../../lib/jwt';
 
 const refresh = Router();
 
-refresh.get('/', async (req, res) => {
-  const { rt } = req.cookies;
+refresh.post('/', async (req, res) => {
+  const { rt } = req.cookies as { rt: string };
 
   if (!rt) {
     return res
-      .status(StatusCodes.PERMANENT_REDIRECT)
+      .status(StatusCodes.FORBIDDEN)
       .clearCookie('at')
       .clearCookie('rt')
-      .redirect('/');
+      .json(getErrorMessage('incorrect refresh token'));
   }
 
   if (!verifyJWTToken(rt)) {
     return res
-      .status(StatusCodes.PERMANENT_REDIRECT)
+      .status(StatusCodes.FORBIDDEN)
       .clearCookie('at')
       .clearCookie('rt')
-      .redirect('/');
+      .json(getErrorMessage('invalid refresh token'));
   }
 
-  const [, payload] = rt.split('.');
-
-  const data: RefreshToken = JSON.parse(decodeFromBase64(payload));
+  const data = getDataFromJWTToken<RefreshToken>(rt);
 
   const oldRefreshToken = await prisma.refreshToken.findFirst({
     where: {
@@ -42,19 +45,31 @@ refresh.get('/', async (req, res) => {
 
   if (!oldRefreshToken) {
     return res
-      .status(StatusCodes.PERMANENT_REDIRECT)
+      .status(StatusCodes.FORBIDDEN)
       .clearCookie('at')
       .clearCookie('rt')
-      .redirect('/');
+      .json(getErrorMessage('expired refresh token'));
   }
-  await prisma.refreshToken.delete({
-    where: {
-      id: data.id
-    },
-    select: {
-      User: true
-    }
-  });
+
+  let user: User;
+  try {
+    user = (
+      await prisma.refreshToken.delete({
+        where: {
+          id: data.id
+        },
+        select: {
+          User: true
+        }
+      })
+    ).User;
+  } catch (e) {
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .clearCookie('at')
+      .clearCookie('rt')
+      .json(getErrorMessage('user does not find by refresh token'));
+  }
 
   const refreshTokenEntity = await prisma.refreshToken.create({
     data: {
@@ -62,7 +77,7 @@ refresh.get('/', async (req, res) => {
     }
   });
 
-  const accessToken = generateJWTToken(rt.User);
+  const accessToken = generateJWTToken(user);
   const refreshToken = generateRefreshToken(refreshTokenEntity.id);
 
   res
@@ -81,7 +96,7 @@ refresh.get('/', async (req, res) => {
       sameSite: 'strict'
     });
 
-  res.status(StatusCodes.PERMANENT_REDIRECT).redirect('/');
+  res.status(StatusCodes.OK).json(user);
 });
 
 export default refresh;

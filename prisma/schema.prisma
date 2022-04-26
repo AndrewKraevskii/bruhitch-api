@@ -23,13 +23,13 @@ model User {
 model ChatSettings {
   id     String @id @default(cuid())
   link   String
-  User   User   @relation(fields: [userId], references: [id])
+  User   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
 }
 
 model RefreshToken {
   id     String @id @default(cuid())
-  User   User   @relation(fields: [userId], references: [id])
+  User   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
 }
 
@@ -37,6 +37,6 @@ model Twitch {
   id           String @id @default(cuid())
   accessToken  String @db.VarChar(256)
   refreshToken String @db.VarChar(256)
-  User         User   @relation(fields: [userId], references: [id])
+  User         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId       String
 }

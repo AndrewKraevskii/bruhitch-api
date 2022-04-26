@@ -19,9 +19,8 @@ login.get('/', async (req, res) => {
   const url = new URL('https://id.twitch.tv/oauth2/authorize');
 
   let host = req.headers.host?.includes('localhost')
-    ? 'http://localhost:3005/api/v1/auth/callback'
+    ? 'http://localhost/api/v1/auth/callback'
     : 'https://bruhitch.vercel.app/api/v1/auth/callback';
-
 
   url.searchParams.append('claims', JSON.stringify(claims));
   url.searchParams.append('client_id', getEnv(Environment.TwitchClientId));

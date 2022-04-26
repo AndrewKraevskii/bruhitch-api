@@ -54,3 +54,9 @@ export const verifyJWTToken = (token: string): boolean => {
 
   return true;
 };
+
+export function getDataFromJWTToken<T>(token: string): T {
+  const [, payloadBase64] = token.split('.');
+
+  return JSON.parse(decodeFromBase64(payloadBase64));
+}

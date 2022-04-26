@@ -39,7 +39,7 @@ callback.get('/', async (req, res) => {
     return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage('invalid scopes'));
 
   let host = req.headers.host?.includes('localhost')
-    ? 'http://localhost:3005/api/v1/auth/callback'
+    ? 'http://localhost/api/v1/auth/callback'
     : 'https://bruhitch.vercel.app/api/v1/auth/callback';
   const resToken = await getToken(code, host);
 
