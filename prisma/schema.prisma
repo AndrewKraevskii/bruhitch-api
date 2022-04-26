@@ -11,26 +11,27 @@ datasource db {
 }
 
 model User {
-  id           String         @id @db.VarChar(16)
-  username     String         @db.VarChar(32)
-  avatar       String         @db.VarChar(256)
-  createdAt    DateTime       @default(now())
-  Twitch       Twitch[]
-  RefreshToken RefreshToken[]
-  ChatSettings ChatSettings[]
+  id           String        @id @db.VarChar(16)
+  username     String        @db.VarChar(32)
+  avatar       String        @db.VarChar(256)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @default(now()) @updatedAt
+  ChatSettings ChatSettings?
+  Twitch       Twitch?
+  RefreshToken RefreshToken?
 }
 
 model ChatSettings {
   id     String @id @default(cuid())
   link   String
   User   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId String
+  userId String @unique
 }
 
 model RefreshToken {
   id     String @id @default(cuid())
   User   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId String
+  userId String @unique
 }
 
 model Twitch {
@@ -38,5 +39,5 @@ model Twitch {
   accessToken  String @db.VarChar(256)
   refreshToken String @db.VarChar(256)
   User         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId       String
+  userId       String @unique
 }

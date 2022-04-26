@@ -33,24 +33,6 @@ refresh.post('/', async (req, res) => {
 
   const data = getDataFromJWTToken<RefreshToken>(rt);
 
-  const oldRefreshToken = await prisma.refreshToken.findFirst({
-    where: {
-      id: data.id,
-      userId: data.userId
-    },
-    select: {
-      User: true
-    }
-  });
-
-  if (!oldRefreshToken) {
-    return res
-      .status(StatusCodes.FORBIDDEN)
-      .clearCookie('at')
-      .clearCookie('rt')
-      .json(getErrorMessage('expired refresh token'));
-  }
-
   let user: User;
   try {
     user = (
@@ -73,7 +55,7 @@ refresh.post('/', async (req, res) => {
 
   const refreshTokenEntity = await prisma.refreshToken.create({
     data: {
-      userId: oldRefreshToken.User.id
+      userId: user.id
     }
   });
 

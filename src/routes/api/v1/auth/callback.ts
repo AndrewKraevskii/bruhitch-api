@@ -1,3 +1,4 @@
+import { User } from '@prisma/client';
 import fetch from 'cross-fetch';
 import { Router } from 'express';
 import { StatusCodes } from 'http-status-codes';
@@ -52,28 +53,39 @@ callback.get('/', async (req, res) => {
   if (maybeError.status) return res.status(406).json(getErrorMessage(maybeError.message));
   const userInfo = resData as UserData;
 
-  let user = await prisma.user.findUnique({ where: { id: userInfo.sub } });
+  let user: User = await prisma.user.findUnique({ where: { id: userInfo.sub } });
   if (!user) {
     user = await prisma.user.create({
       data: { id: userInfo.sub, username: userInfo.preferred_username, avatar: userInfo.picture }
     });
+
+    const twitch = await prisma.twitch.create({
+      data: {
+        accessToken: token.access_token,
+        refreshToken: token.refresh_token,
+        userId: user.id
+      }
+    });
   } else {
-    await prisma.refreshToken.deleteMany({ where: { userId: user.id } });
-    await prisma.twitch.deleteMany({ where: { userId: user.id } });
+    await prisma.twitch.update({
+      data: {
+        accessToken: token.access_token,
+        refreshToken: token.refresh_token
+      },
+      where: {
+        userId: user.id
+      }
+    });
+
+    await prisma.refreshToken.delete({ where: { userId: user.id } });
   }
 
-  const refreshTokenEntity = await prisma.refreshToken.create({
+  let refreshTokenEntity = await prisma.refreshToken.create({
     data: {
       userId: user.id
     }
   });
-  await prisma.twitch.create({
-    data: {
-      accessToken: token.access_token,
-      refreshToken: token.refresh_token,
-      userId: user.id
-    }
-  });
+
   const accessToken = generateJWTToken(user);
   const refreshToken = generateRefreshToken(refreshTokenEntity.id);
 

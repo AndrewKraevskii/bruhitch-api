@@ -20,9 +20,8 @@ save.post('/', async (req, res) => {
 
   const user = getDataFromJWTToken<User>(at);
 
-  let isUpdated = false;
   try {
-    const data = await prisma.chatSettings.updateMany({
+    await prisma.chatSettings.update({
       data: {
         link
       },
@@ -30,14 +29,7 @@ save.post('/', async (req, res) => {
         userId: user.id
       }
     });
-    isUpdated = !!data.count;
   } catch (e) {
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json(getErrorMessage('error on save link'));
-  }
-
-  if (!isUpdated) {
     try {
       await prisma.chatSettings.create({
         data: {

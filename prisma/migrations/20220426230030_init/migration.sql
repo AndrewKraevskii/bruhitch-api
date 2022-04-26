@@ -4,6 +4,7 @@ CREATE TABLE "User" (
     "username" VARCHAR(32) NOT NULL,
     "avatar" VARCHAR(256) NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -34,6 +35,15 @@ CREATE TABLE "Twitch" (
 
     CONSTRAINT "Twitch_pkey" PRIMARY KEY ("id")
 );
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ChatSettings_userId_key" ON "ChatSettings"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RefreshToken_userId_key" ON "RefreshToken"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Twitch_userId_key" ON "Twitch"("userId");
 
 -- AddForeignKey
 ALTER TABLE "ChatSettings" ADD CONSTRAINT "ChatSettings_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

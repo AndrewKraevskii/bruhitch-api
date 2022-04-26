@@ -18,7 +18,7 @@ remove.post('/', async (req, res) => {
 
   try {
     await prisma.user.delete({ where: { id: user.id } });
-    res.status(StatusCodes.OK).json({});
+    res.status(StatusCodes.OK).json(user);
   } catch (e) {
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(getErrorMessage('error on delete user'));
   }

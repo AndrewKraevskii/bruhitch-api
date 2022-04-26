@@ -17,7 +17,7 @@ link.get('/', async (req, res) => {
   const user = getDataFromJWTToken<User>(at);
 
   try {
-    const { link } = await prisma.chatSettings.findFirst({
+    const { link } = await prisma.chatSettings.findUnique({
       where: {
         userId: user.id
       },
