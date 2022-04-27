@@ -7,7 +7,9 @@
     "prebuild": "echo --- tslint -c tslint.json -p tsconfig.json --fix",
     "build": "rimraf build && tsc",
     "dev": "concurrently --names \"Typescript,Express\" -c \"blue.bold,yellow.bold\" \"tsc -w\" \"tsnd --respawn src/index.ts\"",
-    "start": "node build/index.js"
+    "start": "node build/index.js",
+    "preci": "rm -fr node_modules",
+    "ci": "yarn install --frozen-lockfile"
   },
   "dependencies": {
     "@prisma/client": "^3.13.0",

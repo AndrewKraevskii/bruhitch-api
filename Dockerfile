@@ -4,7 +4,7 @@ FROM node:16 as build
 WORKDIR /app
 COPY package.json yarn.lock ./
 COPY prisma ./prisma/
-RUN yarn install --frozen-lockfile
+RUN yarn run ci
 
 # Copy all local files into the image.
 COPY . .
