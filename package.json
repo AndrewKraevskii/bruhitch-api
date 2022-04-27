@@ -7,8 +7,7 @@
     "prebuild": "echo --- tslint -c tslint.json -p tsconfig.json --fix",
     "build": "rimraf build && tsc",
     "dev": "concurrently --names \"Typescript,Express\" -c \"blue.bold,yellow.bold\" \"tsc -w\" \"tsnd --respawn src/index.ts\"",
-    "prestart": "npm run build",
-    "start": "node ."
+    "start": "node build/index.js"
   },
   "dependencies": {
     "@prisma/client": "^3.13.0",
