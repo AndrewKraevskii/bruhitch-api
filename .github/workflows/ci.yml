@@ -65,5 +65,5 @@ jobs:
           echo VERSION=$VERSION
           docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
           docker push $IMAGE_ID:$VERSION
-      # - name: Send hook
-      #   run: curl https://gpplanet.ru/frontend?secret=${{ secrets.SECRET_KEY_TO_WEBHOOK }}
+      - name: Send hook
+        run: curl http://89.223.71.13:9000/hooks/redeploy-webhook?token=${{ secrets.SECRET_KEY_TO_WEBHOOK }}
