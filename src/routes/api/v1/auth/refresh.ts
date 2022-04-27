@@ -45,6 +45,12 @@ refresh.post('/', async (req, res) => {
         }
       })
     ).User;
+    if (!user)
+      return res
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
+        .clearCookie('at')
+        .clearCookie('rt')
+        .json(getErrorMessage('user does not find by refresh token'));
   } catch (e) {
     return res
       .status(StatusCodes.INTERNAL_SERVER_ERROR)

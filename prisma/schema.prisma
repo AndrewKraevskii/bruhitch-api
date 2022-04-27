@@ -19,6 +19,7 @@ model User {
   ChatSettings ChatSettings?
   Twitch       Twitch?
   RefreshToken RefreshToken?
+  TwitchToken  TwitchToken?
 }
 
 model ChatSettings {
@@ -40,4 +41,10 @@ model Twitch {
   refreshToken String @db.VarChar(256)
   User         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId       String @unique
+}
+
+model TwitchToken {
+  id     String @id @default(cuid())
+  User   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
 }

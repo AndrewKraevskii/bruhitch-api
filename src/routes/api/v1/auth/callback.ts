@@ -59,10 +59,16 @@ callback.get('/', async (req, res) => {
       data: { id: userInfo.sub, username: userInfo.preferred_username, avatar: userInfo.picture }
     });
 
-    const twitch = await prisma.twitch.create({
+    await prisma.twitch.create({
       data: {
         accessToken: token.access_token,
         refreshToken: token.refresh_token,
+        userId: user.id
+      }
+    });
+
+    await prisma.twitchToken.create({
+      data: {
         userId: user.id
       }
     });
