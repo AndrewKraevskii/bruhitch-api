@@ -15,4 +15,5 @@ $ vercel
 
 ## Todo list
 
-- [ ] Add EventSub
+- [x] Add EventSub
+- [ ] Refresh dev env

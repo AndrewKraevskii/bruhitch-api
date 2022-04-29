@@ -11,7 +11,8 @@ const callback = Router();
 callback.post('/', async (req, res) => {
   const { clientId } = req.query as { clientId: string };
 
-  if (!clientId) return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage('set clientId'));
+  if (!clientId)
+    return res.status(StatusCodes.BAD_REQUEST).json(getErrorMessage('undefined clientId'));
 
   let secret = getEnv(Environment.SecretKey);
   const rawJson = JSON.stringify(req.body);

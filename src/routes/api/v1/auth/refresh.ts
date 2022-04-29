@@ -17,7 +17,7 @@ refresh.post('/', async (req, res) => {
 
   if (!rt) {
     return res
-      .status(StatusCodes.FORBIDDEN)
+      .status(StatusCodes.BAD_REQUEST)
       .clearCookie('at')
       .clearCookie('rt')
       .json(getErrorMessage('incorrect refresh token'));

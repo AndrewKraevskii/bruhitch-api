@@ -22,17 +22,10 @@ model User {
   TwitchToken  TwitchToken?
 }
 
-model ChatSettings {
-  id     String @id @default(cuid())
-  link   String
-  User   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId String @unique
-}
-
 model RefreshToken {
   id     String @id @default(cuid())
   User   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId String @unique
+  userId String @unique @db.VarChar(16)
 }
 
 model Twitch {
@@ -40,11 +33,39 @@ model Twitch {
   accessToken  String @db.VarChar(256)
   refreshToken String @db.VarChar(256)
   User         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId       String @unique
+  userId       String @unique @db.VarChar(16)
 }
 
 model TwitchToken {
+  id             String          @id @default(cuid())
+  User           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String          @unique @db.VarChar(16)
+  FollowSettings FollowSettings?
+}
+
+model ChatSettings {
   id     String @id @default(cuid())
+  link   String
   User   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId String @unique
+  userId String @unique @db.VarChar(16)
+}
+
+model FollowSettings {
+  id                 String      @id @default(cuid())
+  pattern            String      @default("$username$ just followed")
+  disablePadding     Boolean     @default(false)
+  fontSize           Int         @default(16)
+  font               String      @default("") @db.VarChar(32)
+  textColor          String      @default("#fafafa") @db.VarChar(8)
+  backgroundColor    String      @default("#171717") @db.VarChar(8)
+  backgroundImage    String      @default("") @db.VarChar(256)
+  colorNickname      String      @default("#8CF2A5") @db.VarChar(8)
+  isGradientNickname Boolean     @default(false)
+  animation          String      @default("fade") @db.VarChar(8)
+  animationEasing    String      @default("linear") @db.VarChar(16)
+  animationParams    Json        @default("{}")
+  vertical           String      @default("top") @db.VarChar(8)
+  horizontal         String      @default("left") @db.VarChar(8)
+  TwitchToken        TwitchToken @relation(fields: [twitchTokenId], references: [id], onDelete: Cascade)
+  twitchTokenId      String      @unique @db.VarChar(32)
 }

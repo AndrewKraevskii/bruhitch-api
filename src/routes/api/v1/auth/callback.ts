@@ -34,7 +34,7 @@ callback.get('/', async (req, res) => {
 
   if (error) return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage(error_description));
 
-  if (!code) return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage('invalid code'));
+  if (!code) return res.status(StatusCodes.BAD_REQUEST).json(getErrorMessage('invalid code'));
 
   if (JSON.stringify(scope?.split(' ')?.filter(Boolean)) !== JSON.stringify(getScopes()))
     return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage('invalid scopes'));
@@ -45,12 +45,14 @@ callback.get('/', async (req, res) => {
   const resToken = await getToken(code, host);
 
   let maybeError = resToken as TwitchError;
-  if (maybeError.status) return res.status(406).json(getErrorMessage(maybeError.message));
+  if (maybeError.status)
+    return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage(maybeError.message));
   const token = resToken as OAuthToken;
 
   const resData = await getUserData(token.access_token);
   maybeError = resData as TwitchError;
-  if (maybeError.status) return res.status(406).json(getErrorMessage(maybeError.message));
+  if (maybeError.status)
+    return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage(maybeError.message));
   const userInfo = resData as UserData;
 
   let user: User = await prisma.user.findUnique({ where: { id: userInfo.sub } });
