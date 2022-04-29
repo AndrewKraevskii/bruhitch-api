@@ -30,8 +30,10 @@ settings.get('/', async (req, res) => {
       .json(getErrorMessage('problem with get follow settings'));
   }
 
-  delete followSettings.id;
-  delete followSettings.twitchTokenId;
+  if (followSettings) {
+    delete followSettings.id;
+    delete followSettings.twitchTokenId;
+  }
 
   res.status(StatusCodes.OK).json(followSettings);
 });
