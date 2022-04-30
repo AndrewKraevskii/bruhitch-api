@@ -8,6 +8,7 @@ import getAccessToken from '../lib/getAccessToken';
 import getEnv from '../lib/getEnv';
 import unsubscribeFromEvent from '../lib/unsubscribeFromEvent';
 import { Environment } from '../types/env';
+import { TwitchEventType } from '../types/twitch';
 import { MessageRequest, MessageType } from '../types/ws';
 
 export const createWebSocketCallback = (
@@ -76,7 +77,7 @@ export const createWebSocketCallback = (
                 'Content-Type': 'application/json'
               },
               body: JSON.stringify({
-                type: 'channel.follow',
+                type: TwitchEventType.Follow,
                 version: '1',
                 condition: {
                   broadcaster_user_id: user.id

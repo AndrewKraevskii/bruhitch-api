@@ -4,7 +4,12 @@ import { getErrorMessage } from '../../../../lib/error';
 import { getHmac, getHmacMessage, HMAC_PREFIX, verifyMessage } from '../../../../lib/eventSub';
 import getEnv from '../../../../lib/getEnv';
 import { Environment } from '../../../../types/env';
-import { TwitchEventSubResponse, TwitchEventSubType, TwitchHeader } from '../../../../types/twitch';
+import {
+  TwitchEventSubResponse,
+  TwitchEventSubType,
+  TwitchEventType,
+  TwitchHeader
+} from '../../../../types/twitch';
 
 const callback = Router();
 
@@ -39,7 +44,8 @@ callback.post('/', async (req, res) => {
 
     switch (type) {
       case TwitchEventSubType.Notification: {
-        if (data.subscription.type !== 'channel.follow') return res.status(StatusCodes.NO_CONTENT);
+        if (data.subscription.type !== TwitchEventType.Follow)
+          return res.status(StatusCodes.NO_CONTENT);
 
         const retry = req.headers[TwitchHeader.Retry];
 

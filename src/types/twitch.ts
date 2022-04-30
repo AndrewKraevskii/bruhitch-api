@@ -84,3 +84,7 @@ export type TwitchEventSubResponse = {
   };
   event: TwitchEventData;
 };
+
+export enum TwitchEventType {
+  Follow = 'channel.follow'
+}
