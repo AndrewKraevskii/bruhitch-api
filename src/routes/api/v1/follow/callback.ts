@@ -3,6 +3,7 @@ import { StatusCodes } from 'http-status-codes';
 import { getErrorMessage } from '../../../../lib/error';
 import { getHmac, getHmacMessage, HMAC_PREFIX, verifyMessage } from '../../../../lib/eventSub';
 import getEnv from '../../../../lib/getEnv';
+import { getResponseMessage } from '../../../../lib/ws';
 import { Environment } from '../../../../types/env';
 import {
   TwitchEventSubResponse,
@@ -10,6 +11,7 @@ import {
   TwitchEventType,
   TwitchHeader
 } from '../../../../types/twitch';
+import { CallbackResponseMessageType } from '../../../../types/ws';
 
 const callback = Router();
 
@@ -45,13 +47,15 @@ callback.post('/', async (req, res) => {
     switch (type) {
       case TwitchEventSubType.Notification: {
         if (data.subscription.type !== TwitchEventType.Follow)
-          return res.status(StatusCodes.NO_CONTENT);
+          return res.status(StatusCodes.BAD_REQUEST);
 
         const retry = req.headers[TwitchHeader.Retry];
 
         if (retry !== '0') return res.status(StatusCodes.NO_CONTENT);
 
-        ws.send(JSON.stringify({ type: data.subscription.type, data: data.event }));
+        const wsRes = getResponseMessage(CallbackResponseMessageType.SubscribeFollow, data.event);
+
+        ws.send(JSON.stringify(wsRes));
 
         return res.status(StatusCodes.NO_CONTENT);
       }
@@ -62,9 +66,6 @@ callback.post('/', async (req, res) => {
         return;
       }
       case TwitchEventSubType.Revocation: {
-        console.log(`${data.subscription.type} notifications revoked!`);
-        console.log(`reason: ${data.subscription.status}`);
-        console.log(`condition: ${JSON.stringify(data.subscription.condition, null, 4)}`);
         return res.status(StatusCodes.NO_CONTENT);
       }
       default: {

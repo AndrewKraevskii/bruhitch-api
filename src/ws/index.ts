@@ -3,13 +3,13 @@ import fetch from 'cross-fetch';
 import { IncomingMessage } from 'http';
 import WebSocket from 'ws';
 import { prisma } from '../lib/db';
-import { getErrorMessage } from '../lib/error';
 import getAccessToken from '../lib/getAccessToken';
 import getEnv from '../lib/getEnv';
 import unsubscribeFromEvent from '../lib/unsubscribeFromEvent';
+import { getErrorMessage, getStatusMessage } from '../lib/ws';
 import { Environment } from '../types/env';
 import { TwitchEventType } from '../types/twitch';
-import { MessageRequest, MessageType } from '../types/ws';
+import { RequestMessageType, WSRequest } from '../types/ws';
 
 export const createWebSocketCallback = (
   webSocketServer: WebSocket.Server<WebSocket.WebSocket>
@@ -18,7 +18,8 @@ export const createWebSocketCallback = (
     ws,
     request
   ) => {
-    const url = new URL('http://google.com' + request.url);
+    //#region Initial data
+    const url = new URL('http://localhost' + request.url);
     const token = url.searchParams.get('token');
     if (!token) {
       return ws.close(3000, JSON.stringify(getErrorMessage('incorrect token')));
@@ -43,11 +44,13 @@ export const createWebSocketCallback = (
 
     const client = { id: user.id + new Date().getTime(), ws };
 
-    let subscribedTypes: MessageType[] = [];
+    let subscribedTypes: RequestMessageType[] = [];
+    //#endregion
 
+    //#region On message
     ws.on('message', async (m) => {
       const rawData = Buffer.from(m.toString(), 'binary').toString('utf-8');
-      let req: MessageRequest;
+      let req: WSRequest<any>;
       try {
         req = JSON.parse(rawData);
       } catch (e) {
@@ -55,8 +58,8 @@ export const createWebSocketCallback = (
       }
 
       switch (req.type) {
-        case MessageType.SubscribeFollow: {
-          if (subscribedTypes.includes(MessageType.SubscribeFollow)) return;
+        case RequestMessageType.SubscribeFollow: {
+          if (subscribedTypes.includes(RequestMessageType.SubscribeFollow)) return;
 
           //#region Subscribe to EventSub
           const clientId = getEnv(Environment.TwitchClientId);
@@ -119,25 +122,28 @@ export const createWebSocketCallback = (
             return ws.send(JSON.stringify(getErrorMessage('problem with subscribe')));
           }
 
-          subscribedTypes.push(MessageType.SubscribeFollow);
+          subscribedTypes.push(RequestMessageType.SubscribeFollow);
           (global as any).wsClients[client.id] = { ws: client.ws, subscribeIds: [] };
           //#endregion
 
-          return ws.send(JSON.stringify(getErrorMessage(MessageType.SubscribeFollow)));
+          return ws.send(JSON.stringify(getStatusMessage(RequestMessageType.SubscribeFollow)));
         }
         default: {
           return ws.send(JSON.stringify(getErrorMessage('incorrect type')));
         }
       }
     });
+    //#endregion
 
-    ws.on('error', (e) => ws.send(e));
+    ws.on('error', (e) => ws.send(JSON.stringify(getErrorMessage(e.message))));
 
+    //#region On close WebSocket
     ws.on('close', async () => {
       (global as any).wsClients[client.id]?.subscribeIds.forEach(async (v: string) => {
         await unsubscribeFromEvent(v);
       });
     });
+    //#endregion
   };
   return callback;
 };
