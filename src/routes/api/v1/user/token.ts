@@ -1,4 +1,3 @@
-import { User } from '@prisma/client';
 import { Router } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { prisma } from '../../../../lib/db';
@@ -12,32 +11,32 @@ token.get('/', async (req, res) => {
   const { token } = req.query as { token: string | undefined };
   if (!token) return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage('incorrect token'));
 
-  let user: User;
+  let userId: string;
+  let rt: string;
   try {
     const twitchToken = await prisma.twitchToken.findUnique({
       where: { id: token },
-      select: { User: true }
+      select: {
+        User: {
+          select: {
+            id: true,
+            Twitch: {
+              select: {
+                refreshToken: true
+              }
+            }
+          }
+        }
+      }
     });
-    if (!twitchToken || !twitchToken.User)
+    if (!twitchToken)
       return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage('invalid token'));
-    user = twitchToken.User;
+    userId = twitchToken.User.id;
+    rt = twitchToken.User.Twitch.refreshToken;
   } catch (e) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(getErrorMessage('error on get token'));
-  }
-
-  let at: string;
-  let rt: string;
-  try {
-    const tokens = await prisma.twitch.findUnique({
-      where: { userId: user.id },
-      select: { accessToken: true, refreshToken: true }
-    });
-    if (!tokens || !tokens.accessToken || !tokens.refreshToken)
-      return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage('error on get tokens'));
-    at = tokens.accessToken;
-    rt = tokens.refreshToken;
-  } catch (e) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(getErrorMessage('error on get tokens'));
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json(getErrorMessage('error on get token'));
   }
 
   const refreshResult = await refreshToken(rt);
@@ -53,11 +52,11 @@ token.get('/', async (req, res) => {
       refreshToken: data.refresh_token
     },
     where: {
-      userId: user.id
+      userId: userId
     }
   });
 
-  res.status(StatusCodes.OK).json({ id: user.id, accessToken: data.access_token });
+  res.status(StatusCodes.OK).json({ id: userId, accessToken: data.access_token });
 });
 
 export default token;

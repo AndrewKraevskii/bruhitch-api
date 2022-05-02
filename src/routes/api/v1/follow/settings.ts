@@ -18,12 +18,16 @@ settings.get('/', async (req, res) => {
         id: token
       },
       select: {
-        FollowSettings: true
+        User: {
+          select: {
+            FollowSettings: true
+          }
+        }
       }
     });
     if (!t) return res.status(StatusCodes.NOT_FOUND).json({});
 
-    followSettings = t.FollowSettings;
+    followSettings = t.User.FollowSettings;
   } catch (e) {
     return res
       .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -32,7 +36,7 @@ settings.get('/', async (req, res) => {
 
   if (followSettings) {
     delete followSettings.id;
-    delete followSettings.twitchTokenId;
+    delete followSettings.userId;
   }
 
   res.status(StatusCodes.OK).json(followSettings);
@@ -50,30 +54,30 @@ settings.post('/', async (req, res) => {
   const data: FollowSettings = req.body;
 
   data.id = undefined;
-  data.twitchTokenId = undefined;
+  data.userId = undefined;
 
   let followSettings: FollowSettings;
   let isNew = false;
   try {
-    const token = await prisma.twitchToken.findUnique({
+    const user = await prisma.user.findUnique({
       where: {
-        userId: atData.id
+        id: atData.id
       },
       select: {
         id: true,
         FollowSettings: true
       }
     });
-    if (!token)
+    if (!user)
       return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
-        .json(getErrorMessage('problem with get token'));
-    if (token.FollowSettings) {
-      followSettings = token.FollowSettings;
+        .json(getErrorMessage('problem with get user'));
+    if (user.FollowSettings) {
+      followSettings = user.FollowSettings;
     } else {
       followSettings = await prisma.followSettings.create({
         data: {
-          twitchTokenId: token.id
+          userId: user.id
         }
       });
     }
@@ -91,7 +95,7 @@ settings.post('/', async (req, res) => {
       newData[k] = (data as any)[k];
     });
 
-  delete newData.id, delete newData.twitchTokenId;
+  delete newData.id, delete newData.userId;
 
   try {
     followSettings = await prisma.followSettings.update({
@@ -109,7 +113,7 @@ settings.post('/', async (req, res) => {
   }
 
   delete followSettings.id;
-  delete followSettings.twitchTokenId;
+  delete followSettings.userId;
 
   res.status(StatusCodes.OK).json(followSettings);
 });

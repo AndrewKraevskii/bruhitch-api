@@ -11,15 +11,16 @@ datasource db {
 }
 
 model User {
-  id           String        @id @db.VarChar(16)
-  username     String        @db.VarChar(32)
-  avatar       String        @db.VarChar(256)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @default(now()) @updatedAt
-  ChatSettings ChatSettings?
-  Twitch       Twitch?
-  RefreshToken RefreshToken?
-  TwitchToken  TwitchToken?
+  id             String          @id @db.VarChar(16)
+  username       String          @db.VarChar(32)
+  avatar         String          @db.VarChar(256)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @default(now()) @updatedAt
+  ChatSettings   ChatSettings?
+  Twitch         Twitch?
+  RefreshToken   RefreshToken?
+  TwitchToken    TwitchToken?
+  FollowSettings FollowSettings?
 }
 
 model RefreshToken {
@@ -37,10 +38,9 @@ model Twitch {
 }
 
 model TwitchToken {
-  id             String          @id @default(cuid())
-  User           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId         String          @unique @db.VarChar(16)
-  FollowSettings FollowSettings?
+  id     String @id @default(cuid())
+  User   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique @db.VarChar(16)
 }
 
 model ChatSettings {
@@ -51,21 +51,21 @@ model ChatSettings {
 }
 
 model FollowSettings {
-  id                 String      @id @default(cuid())
-  pattern            String      @default("$username$ just followed")
-  disablePadding     Boolean     @default(false)
-  fontSize           Int         @default(16)
-  font               String      @default("") @db.VarChar(32)
-  textColor          String      @default("#fafafa") @db.VarChar(8)
-  backgroundColor    String      @default("#171717") @db.VarChar(8)
-  backgroundImage    String      @default("") @db.VarChar(256)
-  colorNickname      String      @default("#8CF2A5") @db.VarChar(8)
-  isGradientNickname Boolean     @default(false)
-  animation          String      @default("fade") @db.VarChar(8)
-  animationEasing    String      @default("linear") @db.VarChar(16)
-  animationParams    Json        @default("{}")
-  vertical           String      @default("top") @db.VarChar(8)
-  horizontal         String      @default("left") @db.VarChar(8)
-  TwitchToken        TwitchToken @relation(fields: [twitchTokenId], references: [id], onDelete: Cascade)
-  twitchTokenId      String      @unique @db.VarChar(32)
+  id                 String  @id @default(cuid())
+  pattern            String  @default("$username$ just followed")
+  disablePadding     Boolean @default(false)
+  fontSize           Int     @default(16)
+  font               String  @default("") @db.VarChar(32)
+  textColor          String  @default("#fafafa") @db.VarChar(8)
+  backgroundColor    String  @default("#171717") @db.VarChar(8)
+  backgroundImage    String  @default("") @db.VarChar(256)
+  colorNickname      String  @default("#8CF2A5") @db.VarChar(8)
+  isGradientNickname Boolean @default(false)
+  animation          String  @default("fade") @db.VarChar(8)
+  animationEasing    String  @default("linear") @db.VarChar(16)
+  animationParams    Json    @default("{}")
+  vertical           String  @default("top") @db.VarChar(8)
+  horizontal         String  @default("left") @db.VarChar(8)
+  User               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId             String  @unique @db.VarChar(16)
 }
