@@ -9,7 +9,7 @@ import { createWebSocketCallback } from './ws';
 
 config();
 
-(global as any).wsClients = {};
+(global as any).wsClients = [];
 
 const app = express();
 const port = process.env.PORT || 3005; // default port to listen
@@ -29,8 +29,10 @@ app.use(cookieParser());
 
 app.use('/api/v1', apiV1);
 
-server.listen(port, () => {
-  console.log(`Server started at http://localhost:${port}`);
-});
-
-module.exports = app;
+try {
+  server.listen(port, () => {
+    console.log(`Server started at http://localhost:${port}`);
+  });
+} catch (e) {
+  console.error(e);
+}

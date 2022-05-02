@@ -1,28 +1,58 @@
-import { BaseResponseMessageType, ResponseMessageType, WSResponse } from '../types/ws';
+import {
+  BaseResponseMessageType,
+  RequestMessageType,
+  ResponseMessageType,
+  WsClient
+} from '../types/ws';
+import unsubscribeFromEvent from './unsubscribeFromEvent';
 
 export function getResponseMessage<T>(
-  type: Exclude<
-    Exclude<ResponseMessageType, BaseResponseMessageType.Error>,
-    BaseResponseMessageType.Status
-  >,
+  type: Exclude<ResponseMessageType, BaseResponseMessageType.Error>,
   data: T
-): WSResponse<T> {
-  return {
+): string {
+  return JSON.stringify({
     type,
     data
-  };
+  });
 }
 
-export const getStatusMessage = (message: string): WSResponse<undefined> => {
-  return {
-    type: BaseResponseMessageType.Status,
-    message
-  };
-};
-
-export const getErrorMessage = (message: string): WSResponse<undefined> => {
-  return {
+export const getErrorMessage = (message: string): string => {
+  return JSON.stringify({
     type: BaseResponseMessageType.Error,
     message
-  };
+  });
+};
+
+export const getWsClient = (id: string): WsClient | undefined => {
+  return (global as any).wsClients.find((v: WsClient) => v.id === id);
+};
+
+export const addSubscribeTypeInWsClient = (id: string, type: RequestMessageType) => {
+  const currentWsClient = getWsClient(id);
+  if (!currentWsClient) return;
+  currentWsClient.subscribeTypes.push(type);
+  (global as any).wsClients = [
+    ...(global as any).wsClients.filter((v: WsClient) => v.id !== id),
+    currentWsClient
+  ];
+};
+
+export const addEventSubIdInWsClient = (id: string, eventSubId: string) => {
+  const currentWsClient = getWsClient(id);
+  if (!currentWsClient) return;
+  currentWsClient.eventSubIds.push(eventSubId);
+  (global as any).wsClients = [
+    ...(global as any).wsClients.filter((v: WsClient) => v.id !== id),
+    currentWsClient
+  ];
+};
+
+export const removeWsClient = (id: string) => {
+  const wsClient = getWsClient(id);
+
+  wsClient?.eventSubIds.forEach(async (v: string) => {
+    await unsubscribeFromEvent(v);
+  });
+
+  (global as any).wsClients = (global as any).wsClients.filter((v: WsClient) => v.id !== id);
 };

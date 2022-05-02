@@ -3,7 +3,7 @@ import { StatusCodes } from 'http-status-codes';
 import { getErrorMessage } from '../../../../lib/error';
 import { getHmac, getHmacMessage, HMAC_PREFIX, verifyMessage } from '../../../../lib/eventSub';
 import getEnv from '../../../../lib/getEnv';
-import { getResponseMessage } from '../../../../lib/ws';
+import { addEventSubIdInWsClient, getResponseMessage, getWsClient } from '../../../../lib/ws';
 import { Environment } from '../../../../types/env';
 import {
   TwitchEventSubResponse,
@@ -32,16 +32,11 @@ callback.post('/', async (req, res) => {
     const type = req.headers[TwitchHeader.Type];
     const data: TwitchEventSubResponse = JSON.parse(rawJson);
 
-    const client = (global as any).wsClients[clientId];
-    if (!client) return res.status(StatusCodes.INTERNAL_SERVER_ERROR);
+    const wsClient = getWsClient(clientId);
+    if (!wsClient) return res.status(StatusCodes.INTERNAL_SERVER_ERROR);
 
-    const ws = (global as any).wsClients[clientId].ws;
-
-    if (!(global as any).wsClients[clientId].subscribeIds.includes(data.subscription.id)) {
-      (global as any).wsClients[clientId].subscribeIds = [
-        ...(global as any).wsClients[clientId].subscribeIds,
-        data.subscription.id
-      ];
+    if (!wsClient.eventSubIds.includes(data.subscription.id)) {
+      addEventSubIdInWsClient(clientId, data.subscription.id);
     }
 
     switch (type) {
@@ -53,9 +48,9 @@ callback.post('/', async (req, res) => {
 
         if (retry !== '0') return res.status(StatusCodes.NO_CONTENT);
 
-        const wsRes = getResponseMessage(CallbackResponseMessageType.SubscribeFollow, data.event);
-
-        ws.send(JSON.stringify(wsRes));
+        wsClient.ws.send(
+          getResponseMessage(CallbackResponseMessageType.SubscribeFollow, data.event)
+        );
 
         return res.status(StatusCodes.NO_CONTENT);
       }

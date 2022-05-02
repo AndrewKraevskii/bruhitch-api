@@ -1,3 +1,5 @@
+import WebSocket from 'ws';
+
 export enum RequestMessageType {
   SubscribeFollow = 'subscribe/follow'
 }
@@ -9,7 +11,7 @@ export type WSRequest<T> = {
 
 export enum BaseResponseMessageType {
   Error = 'error',
-  Status = 'status'
+  Reconnect = 'reconnect'
 }
 
 export enum WSResponseMessageType {
@@ -29,4 +31,13 @@ export type WSResponse<T> = {
   type: ResponseMessageType;
   message?: string; // On Error and Status ResponseMessageTypes
   data?: T;
+};
+
+export type WsClient = {
+  id: string;
+  channel: string;
+  channelId: string;
+  ws: WebSocket.WebSocket;
+  subscribeTypes: RequestMessageType[];
+  eventSubIds: string[];
 };
