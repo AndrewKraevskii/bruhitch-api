@@ -2,7 +2,9 @@ import { Router } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { prisma } from '../../../../lib/db';
 import { getErrorMessage } from '../../../../lib/error';
+import getEnv from '../../../../lib/getEnv';
 import refreshToken from '../../../../lib/refreshToken';
+import { Environment } from '../../../../types/env';
 import { RefreshToken, TwitchError } from '../../../../types/twitch';
 
 const token = Router();
@@ -56,7 +58,11 @@ token.get('/', async (req, res) => {
     }
   });
 
-  res.status(StatusCodes.OK).json({ id: userId, accessToken: data.access_token });
+  res.status(StatusCodes.OK).json({
+    accessToken: data.access_token,
+    clientId: getEnv(Environment.TwitchClientId),
+    scope: data.scope
+  });
 });
 
 export default token;
