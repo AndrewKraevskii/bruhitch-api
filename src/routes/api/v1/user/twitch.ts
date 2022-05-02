@@ -23,7 +23,7 @@ twitch.get('/', async (req, res) => {
     });
     res.status(StatusCodes.OK).json(token);
   } catch (e) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(getErrorMessage('error on delete user'));
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(getErrorMessage('error on get token'));
   }
 });
 
