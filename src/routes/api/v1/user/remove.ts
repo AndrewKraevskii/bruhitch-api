@@ -4,6 +4,7 @@ import { StatusCodes } from 'http-status-codes';
 import { prisma } from '../../../../lib/db';
 import { getErrorMessage } from '../../../../lib/error';
 import { getDataFromJWTToken, verifyJWTToken } from '../../../../lib/jwt';
+import revokeAccessToken from '../../../../lib/revokeAccessToken';
 
 const remove = Router();
 
@@ -15,6 +16,18 @@ remove.post('/', async (req, res) => {
     return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage('invalid access_token'));
 
   const user = getDataFromJWTToken<User>(at);
+
+  try {
+    const tokens = await prisma.twitch.findUnique({
+      where: { userId: user.id },
+      select: {
+        accessToken: true
+      }
+    });
+    if (tokens && tokens.accessToken) {
+      await revokeAccessToken(tokens.accessToken);
+    }
+  } catch (e) {}
 
   try {
     await prisma.user.delete({ where: { id: user.id } });

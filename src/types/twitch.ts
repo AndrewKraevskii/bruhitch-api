@@ -10,7 +10,9 @@ export type TwitchClaims = {
 
 export enum TwitchScope {
   OpenId = 'openid',
-  ReadEmail = 'user:read:email'
+  ReadEmail = 'user:read:email',
+  Subscriptions = 'channel:read:subscriptions',
+  Bits = 'bits:read'
 }
 
 export type OAuthToken = {
