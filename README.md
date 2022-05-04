@@ -1,10 +1,4 @@
-```
-$ npm install
-$ cd ./backend && npm install
-$ cd ..
-$ npm install vercel -g
-$ vercel
-```
+# API server to bruhitch.vercel.app
 
 ## Env variables
 
