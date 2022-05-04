@@ -13,7 +13,13 @@ token.get('/', async (req, res) => {
   const { token } = req.query as { token: string | undefined };
   if (!token) return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage('incorrect token'));
 
-  let userId: string;
+  let user: {
+    id: string;
+    username: string;
+    Twitch: {
+      refreshToken: string;
+    };
+  };
   let rt: string;
   try {
     const twitchToken = await prisma.twitchToken.findUnique({
@@ -22,6 +28,7 @@ token.get('/', async (req, res) => {
         User: {
           select: {
             id: true,
+            username: true,
             Twitch: {
               select: {
                 refreshToken: true
@@ -33,7 +40,7 @@ token.get('/', async (req, res) => {
     });
     if (!twitchToken)
       return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage('invalid token'));
-    userId = twitchToken.User.id;
+    user = twitchToken.User;
     rt = twitchToken.User.Twitch.refreshToken;
   } catch (e) {
     return res
@@ -54,12 +61,14 @@ token.get('/', async (req, res) => {
       refreshToken: data.refresh_token
     },
     where: {
-      userId: userId
+      userId: user.id
     }
   });
 
   res.status(StatusCodes.OK).json({
     accessToken: data.access_token,
+    userId: user.id,
+    user: user.username,
     clientId: getEnv(Environment.TwitchClientId),
     scope: data.scope
   });
