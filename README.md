@@ -12,8 +12,3 @@ $ vercel
 - `TWITCH_SECRET_KEY`
 - `DATABASE_URL`
 - `SECRET_KEY`
-
-## Todo list
-
-- [x] Add EventSub
-- [x] Refresh dev env

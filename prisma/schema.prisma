@@ -11,16 +11,17 @@ datasource db {
 }
 
 model User {
-  id             String          @id @db.VarChar(16)
-  username       String          @db.VarChar(32)
-  avatar         String          @db.VarChar(256)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @default(now()) @updatedAt
-  ChatSettings   ChatSettings?
-  Twitch         Twitch?
-  RefreshToken   RefreshToken?
-  TwitchToken    TwitchToken?
-  FollowSettings FollowSettings?
+  id                String             @id @db.VarChar(16)
+  username          String             @db.VarChar(32)
+  avatar            String             @db.VarChar(256)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @default(now()) @updatedAt
+  ChatSettings      ChatSettings?
+  Twitch            Twitch?
+  RefreshToken      RefreshToken?
+  TwitchToken       TwitchToken?
+  FollowSettings    FollowSettings?
+  SubscribeSettings SubscribeSettings?
 }
 
 model RefreshToken {
@@ -56,8 +57,6 @@ model FollowSettings {
   disablePadding     Boolean @default(false)
   fontSize           Int     @default(16)
   font               String  @default("") @db.VarChar(32)
-  textColor          String  @default("#fafafa") @db.VarChar(8)
-  backgroundColor    String  @default("#171717") @db.VarChar(8)
   backgroundImage    String  @default("") @db.VarChar(256)
   colorNickname      String  @default("#8CF2A5") @db.VarChar(8)
   isGradientNickname Boolean @default(false)
@@ -68,4 +67,26 @@ model FollowSettings {
   horizontal         String  @default("left") @db.VarChar(8)
   User               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId             String  @unique @db.VarChar(16)
+}
+
+model SubscribeSettings {
+  id                    String  @id @default(cuid())
+  subPattern            String  @default("![alt](https://cdn.7tv.app/emote/60ccf4479f5edeff9938fa77/4x) $username$ just subscribed")
+  giftPattern           String  @default("![alt](https://cdn.7tv.app/emote/60ccf4479f5edeff9938fa77/4x) $username$ gift sub to $recipient$")
+  giftMultiMonthPattern String  @default("![alt](https://cdn.7tv.app/emote/60ccf4479f5edeff9938fa77/4x) $username$ gift sub to $recipient$ on $duration$ months")
+  anonymous             String  @default("Anonymous") @db.VarChar(32)
+  disablePadding        Boolean @default(false)
+  fontSize              Int     @default(16)
+  font                  String  @default("") @db.VarChar(32)
+  image                 String  @default("") @db.VarChar(256)
+  usernameColor         String  @default("#8CF2A5") @db.VarChar(8)
+  isGradientUsername    Boolean @default(false)
+  recipientColor        String  @default("#8CF2A5") @db.VarChar(8)
+  isGradientRecipient   Boolean @default(false)
+  animation             String  @default("fade") @db.VarChar(8)
+  animationEasing       String  @default("linear") @db.VarChar(16)
+  animationParams       Json    @default("{}")
+  vertical              String  @default("top") @db.VarChar(8)
+  User                  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId                String  @unique @db.VarChar(16)
 }

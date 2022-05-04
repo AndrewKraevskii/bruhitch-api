@@ -59,11 +59,18 @@ refresh.post('/', async (req, res) => {
       .json(getErrorMessage('user does not find by refresh token'));
   }
 
-  const refreshTokenEntity = await prisma.refreshToken.create({
-    data: {
-      userId: user.id
-    }
-  });
+  let refreshTokenEntity: RefreshToken;
+  try {
+    refreshTokenEntity = await prisma.refreshToken.create({
+      data: {
+        userId: user.id
+      }
+    });
+  } catch (e) {
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json(getErrorMessage('error on create refresh token'));
+  }
 
   const accessToken = generateJWTToken(user);
   const refreshToken = generateRefreshToken(refreshTokenEntity.id);
