@@ -57,7 +57,6 @@ settings.post('/', async (req, res) => {
   data.userId = undefined;
 
   let subscribeSettings: SubscribeSettings;
-  let isNew = false;
   try {
     const user = await prisma.user.findUnique({
       where: {
