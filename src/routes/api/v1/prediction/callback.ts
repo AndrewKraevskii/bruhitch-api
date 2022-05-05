@@ -79,6 +79,7 @@ callback.post('/', async (req, res) => {
             break;
           }
           default: {
+            console.log(data.event);
           }
         }
 

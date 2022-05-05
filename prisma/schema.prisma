@@ -11,17 +11,18 @@ datasource db {
 }
 
 model User {
-  id                String             @id @db.VarChar(16)
-  username          String             @db.VarChar(32)
-  avatar            String             @db.VarChar(256)
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @default(now()) @updatedAt
-  ChatSettings      ChatSettings?
-  Twitch            Twitch?
-  RefreshToken      RefreshToken?
-  TwitchToken       TwitchToken?
-  FollowSettings    FollowSettings?
-  SubscribeSettings SubscribeSettings?
+  id                 String              @id @db.VarChar(16)
+  username           String              @db.VarChar(32)
+  avatar             String              @db.VarChar(256)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @default(now()) @updatedAt
+  ChatSettings       ChatSettings?
+  Twitch             Twitch?
+  RefreshToken       RefreshToken?
+  TwitchToken        TwitchToken?
+  FollowSettings     FollowSettings?
+  SubscribeSettings  SubscribeSettings?
+  PredictionSettings PredictionSettings?
 }
 
 model RefreshToken {
@@ -89,4 +90,22 @@ model SubscribeSettings {
   vertical              String  @default("top") @db.VarChar(8)
   User                  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId                String  @unique @db.VarChar(16)
+}
+
+model PredictionSettings {
+  id                String  @id @default(cuid())
+  textColor         String  @default("#8CF2A5") @db.VarChar(8)
+  blueColor         String  @default("#5D90EF") @db.VarChar(8)
+  pinkColor         String  @default("#E75F5F") @db.VarChar(8)
+  channelPointImage String  @default("https://static-cdn.jtvnw.net/channel-points-icons/215064792/5be9fe0b-62f4-4806-bdcf-d6d972417a54/icon-1.png") @db.VarChar(256)
+  disablePadding    Boolean @default(false)
+  fontSize          Int     @default(16)
+  font              String  @default("") @db.VarChar(32)
+  hideDelay         Int     @default(5000)
+  animation         String  @default("fade") @db.VarChar(8)
+  animationEasing   String  @default("linear") @db.VarChar(16)
+  animationParams   Json    @default("{}")
+  vertical          String  @default("top") @db.VarChar(8)
+  User              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId            String  @unique @db.VarChar(16)
 }

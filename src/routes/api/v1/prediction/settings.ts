@@ -1,4 +1,4 @@
-import { FollowSettings, User } from '@prisma/client';
+import { PredictionSettings, User } from '@prisma/client';
 import { Router } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { prisma } from '../../../../lib/db';
@@ -11,7 +11,7 @@ settings.get('/', async (req, res) => {
   const { token } = req.query as { token: string };
   if (!token) return res.status(StatusCodes.BAD_REQUEST).json(getErrorMessage('undefined token'));
 
-  let followSettings: FollowSettings;
+  let predictionSettings: PredictionSettings;
   try {
     const t = await prisma.twitchToken.findUnique({
       where: {
@@ -20,26 +20,26 @@ settings.get('/', async (req, res) => {
       select: {
         User: {
           select: {
-            FollowSettings: true
+            PredictionSettings: true
           }
         }
       }
     });
     if (!t) return res.status(StatusCodes.NOT_FOUND).json({});
 
-    followSettings = t.User.FollowSettings;
+    predictionSettings = t.User.PredictionSettings;
   } catch (e) {
     return res
       .status(StatusCodes.INTERNAL_SERVER_ERROR)
       .json(getErrorMessage('problem with get follow settings'));
   }
 
-  if (followSettings) {
-    delete followSettings.id;
-    delete followSettings.userId;
+  if (predictionSettings) {
+    delete predictionSettings.id;
+    delete predictionSettings.userId;
   }
 
-  res.status(StatusCodes.OK).json(followSettings);
+  res.status(StatusCodes.OK).json(predictionSettings);
 });
 
 settings.post('/', async (req, res) => {
@@ -51,12 +51,12 @@ settings.post('/', async (req, res) => {
 
   const atData = getDataFromJWTToken<User>(at);
 
-  const data: FollowSettings = req.body;
+  const data: PredictionSettings = req.body;
 
   data.id = undefined;
   data.userId = undefined;
 
-  let followSettings: FollowSettings;
+  let predictionSettings: PredictionSettings;
   try {
     const user = await prisma.user.findUnique({
       where: {
@@ -64,17 +64,17 @@ settings.post('/', async (req, res) => {
       },
       select: {
         id: true,
-        FollowSettings: true
+        PredictionSettings: true
       }
     });
     if (!user)
       return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
         .json(getErrorMessage('problem with get user'));
-    if (user.FollowSettings) {
-      followSettings = user.FollowSettings;
+    if (user.PredictionSettings) {
+      predictionSettings = user.PredictionSettings;
     } else {
-      followSettings = await prisma.followSettings.create({
+      predictionSettings = await prisma.predictionSettings.create({
         data: {
           userId: user.id
         }
@@ -89,7 +89,7 @@ settings.post('/', async (req, res) => {
   let newData: any = {};
 
   Object.keys(data)
-    .filter((k) => k in followSettings)
+    .filter((k) => k in predictionSettings)
     .forEach((k) => {
       newData[k] = (data as any)[k];
     });
@@ -97,12 +97,12 @@ settings.post('/', async (req, res) => {
   delete newData.id, delete newData.userId;
 
   try {
-    followSettings = await prisma.followSettings.update({
+    predictionSettings = await prisma.predictionSettings.update({
       data: {
         ...newData
       },
       where: {
-        id: followSettings.id
+        id: predictionSettings.id
       }
     });
   } catch (e) {
@@ -111,10 +111,10 @@ settings.post('/', async (req, res) => {
       .json(getErrorMessage('problem with save follow settings'));
   }
 
-  delete followSettings.id;
-  delete followSettings.userId;
+  delete predictionSettings.id;
+  delete predictionSettings.userId;
 
-  res.status(StatusCodes.OK).json(followSettings);
+  res.status(StatusCodes.OK).json(predictionSettings);
 });
 
 export default settings;

@@ -24,7 +24,7 @@ export enum WSResponseMessageType {
 export enum CallbackResponseMessageType {
   SubscribeFollow = 'subscribe/follow',
   SubscribePredictionBegin = 'subscribe/prediction/begin',
-  SubscribePredictionProgress = 'subscribe/prediction/subscribePredictionProgress',
+  SubscribePredictionProgress = 'subscribe/prediction/progress',
   SubscribePredictionEnd = 'subscribe/prediction/end'
 }
 
