@@ -12,7 +12,8 @@ export enum TwitchScope {
   OpenId = 'openid',
   ReadEmail = 'user:read:email',
   Subscriptions = 'channel:read:subscriptions',
-  Bits = 'bits:read'
+  Bits = 'bits:read',
+  Predictions = 'channel:read:predictions'
 }
 
 export type OAuthToken = {
@@ -67,7 +68,51 @@ export type TwitchEventFollowData = {
   followed_at: string;
 };
 
-export type TwitchEventData = TwitchEventFollowData;
+export type Predictor = {
+  user_id: string;
+  user_login: string;
+  user_name: string;
+  channel_points_won: number | null;
+  channel_points_used: number;
+};
+
+export type PredictionOutcome = {
+  id: string;
+  title: string;
+  color: 'blue' | 'pink';
+  users?: number;
+  channel_points?: number;
+  top_predictors?: Predictor[];
+};
+
+export type TwitchEventPredictionData = {
+  id: string;
+  broadcaster_user_id: string;
+  broadcaster_user_login: string;
+  broadcaster_user_name: string;
+  title: string;
+  outcomes: PredictionOutcome[];
+  started_at: string;
+  locks_at: string;
+};
+
+export type TwitchEventPredictionEndData = {
+  id: string;
+  broadcaster_user_id: string;
+  broadcaster_user_login: string;
+  broadcaster_user_name: string;
+  title: string;
+  winning_outcome_id: string;
+  outcomes: PredictionOutcome[];
+  status: 'resolved' | 'canceled';
+  started_at: string;
+  ended_at: string;
+};
+
+export type TwitchEventData =
+  | TwitchEventFollowData
+  | TwitchEventPredictionData
+  | TwitchEventPredictionEndData;
 
 export type TwitchEventSubResponse = {
   challenge: string;
@@ -88,5 +133,8 @@ export type TwitchEventSubResponse = {
 };
 
 export enum TwitchEventType {
-  Follow = 'channel.follow'
+  Follow = 'channel.follow',
+  PredictionBegin = 'channel.prediction.begin',
+  PredictionProgress = 'channel.prediction.progress',
+  PredictionEnd = 'channel.prediction.end'
 }

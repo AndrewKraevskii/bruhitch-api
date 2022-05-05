@@ -4,6 +4,7 @@ import { config } from 'dotenv';
 import express from 'express';
 import http from 'http';
 import WebSocket from 'ws';
+import { unsubscribeFromFailed } from './lib/unsubscribeFromFailed';
 import apiV1 from './routes/api/v1';
 import { createWebSocketCallback } from './ws';
 
@@ -32,6 +33,8 @@ app.use('/api/v1', apiV1);
 try {
   server.listen(port, () => {
     console.log(`Server started at http://localhost:${port}`);
+    unsubscribeFromFailed();
+    setInterval(unsubscribeFromFailed, 1000 * 60 * 5);
   });
 } catch (e) {
   console.error(e);

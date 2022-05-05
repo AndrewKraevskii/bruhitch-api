@@ -1,7 +1,9 @@
 import WebSocket from 'ws';
 
 export enum RequestMessageType {
-  SubscribeFollow = 'subscribe/follow'
+  SubscribeFollow = 'subscribe/follow',
+  SubscribePrediction = 'subscribe/prediction',
+  Ping = 'PING'
 }
 
 export type WSRequest<T> = {
@@ -15,11 +17,15 @@ export enum BaseResponseMessageType {
 }
 
 export enum WSResponseMessageType {
-  Subscribed = 'subscribed'
+  Subscribed = 'subscribed',
+  Pong = 'PONG'
 }
 
 export enum CallbackResponseMessageType {
-  SubscribeFollow = 'subscribe/follow'
+  SubscribeFollow = 'subscribe/follow',
+  SubscribePredictionBegin = 'subscribe/prediction/begin',
+  SubscribePredictionProgress = 'subscribe/prediction/subscribePredictionProgress',
+  SubscribePredictionEnd = 'subscribe/prediction/end'
 }
 
 export type ResponseMessageType =

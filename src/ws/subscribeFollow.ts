@@ -1,6 +1,7 @@
 import fetch from 'cross-fetch';
 import getAccessToken from '../lib/getAccessToken';
 import getEnv from '../lib/getEnv';
+import { getEventSubCallback } from '../lib/getEventSubCallback';
 import {
   addSubscribeTypeInWsClient,
   getErrorMessage,
@@ -25,8 +26,7 @@ export const subscribeFollow = async (id: string) => {
   const accessToken = await getAccessToken(clientId, getEnv(Environment.TwitchSecretKey));
   if (!accessToken)
     return wsClient.ws.send(JSON.stringify(getErrorMessage('problem with get app access token')));
-  const callback =
-    getEnv(Environment.CallbackOrigin) + '/api/v1/follow/callback?clientId=' + wsClient.id;
+  const callback = getEventSubCallback(wsClient.id, 'follow');
   //#endregion
 
   //#region Subscribe to EventSub

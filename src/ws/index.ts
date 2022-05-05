@@ -3,9 +3,10 @@ import { IncomingMessage } from 'http';
 import { v4 } from 'uuid';
 import WebSocket from 'ws';
 import { prisma } from '../lib/db';
-import { getErrorMessage, removeWsClient } from '../lib/ws';
-import { RequestMessageType, WsClient, WSRequest } from '../types/ws';
+import { getErrorMessage, getResponseMessage, removeWsClient } from '../lib/ws';
+import { RequestMessageType, WsClient, WSRequest, WSResponseMessageType } from '../types/ws';
 import { subscribeFollow } from './subscribeFollow';
+import { subscribePrediction } from './subscribePrediction';
 
 export const createWebSocketCallback = (
   webSocketServer: WebSocket.Server<WebSocket.WebSocket>
@@ -66,11 +67,15 @@ export const createWebSocketCallback = (
       //#endregion
 
       switch (req.type) {
-        //#region Subscribe Follow
         case RequestMessageType.SubscribeFollow: {
           return subscribeFollow(WS_CLIENT_ID);
         }
-        //#endregion
+        case RequestMessageType.SubscribePrediction: {
+          return subscribePrediction(WS_CLIENT_ID);
+        }
+        case RequestMessageType.Ping: {
+          return ws.send(getResponseMessage(WSResponseMessageType.Pong, undefined));
+        }
         default: {
           return ws.send(getErrorMessage('incorrect type'));
         }
