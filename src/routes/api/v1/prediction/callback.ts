@@ -15,16 +15,18 @@ import { CallbackResponseMessageType } from '../../../../types/ws';
 
 const callback = Router();
 
+const tenMinutes = 1000 * 60 * 10;
+
 callback.post('/', async (req, res) => {
   const { clientId } = req.query as { clientId: string };
 
   if (!clientId)
     return res.status(StatusCodes.BAD_REQUEST).json(getErrorMessage('undefined clientId'));
 
-  let secret = getEnv(Environment.SecretKey);
+  const secret = getEnv(Environment.SecretKey);
   const rawJson = JSON.stringify(req.body);
-  let message = getHmacMessage(req.headers, rawJson);
-  let hmac = HMAC_PREFIX + getHmac(secret, message);
+  const message = getHmacMessage(req.headers, rawJson);
+  const hmac = HMAC_PREFIX + getHmac(secret, message);
 
   const sign = req.headers[TwitchHeader.Signature] as string;
 
@@ -52,9 +54,11 @@ callback.post('/', async (req, res) => {
         )
           return res.status(StatusCodes.BAD_REQUEST);
 
-        const retry = req.headers[TwitchHeader.Retry];
+        const timestamp = new Date(req.headers[TwitchHeader.Timestamp] as string);
 
-        if (retry !== '0') return res.status(StatusCodes.NO_CONTENT);
+        if (new Date(timestamp.getTime() * tenMinutes) < new Date()) {
+          return res.status(StatusCodes.NO_CONTENT);
+        }
 
         switch (data.subscription.type) {
           case TwitchEventType.PredictionBegin: {
@@ -89,6 +93,7 @@ callback.post('/', async (req, res) => {
         res.writeHead(StatusCodes.OK, { 'Content-Type': 'text/plain' });
         res.write(data.challenge);
         res.end();
+        wsClient.ws.send(JSON.stringify({ type: 'verification/' + data.subscription.type }));
         return;
       }
       case TwitchEventSubType.Revocation: {

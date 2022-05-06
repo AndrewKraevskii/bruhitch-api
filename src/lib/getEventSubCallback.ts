@@ -5,4 +5,4 @@ export const getEventSubCallback = (id: string | number, endpoint: 'follow' | 'p
   return `${getEnv(Environment.CallbackOrigin)}/api/v1/${endpoint}/callback?clientId=${id}`;
 };
 
-export const eventSubRegex = /https:\/\/([^\/]*)\/api\/v1\/([^\/]*)\/callback\?clientId=([^&]*)/i;
+export const eventSubRegex = /(https:\/\/[^\/]*)\/api\/v1\/([^\/]*)\/callback\?clientId=([^&]*)/i;

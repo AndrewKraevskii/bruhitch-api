@@ -15,6 +15,8 @@ import { CallbackResponseMessageType } from '../../../../types/ws';
 
 const callback = Router();
 
+const tenMinutes = 1000 * 60 * 10;
+
 callback.post('/', async (req, res) => {
   const { clientId } = req.query as { clientId: string };
 
@@ -44,9 +46,11 @@ callback.post('/', async (req, res) => {
         if (data.subscription.type !== TwitchEventType.Follow)
           return res.status(StatusCodes.BAD_REQUEST);
 
-        const retry = req.headers[TwitchHeader.Retry];
+        const timestamp = new Date(req.headers[TwitchHeader.Timestamp] as string);
 
-        if (retry !== '0') return res.status(StatusCodes.NO_CONTENT);
+        if (new Date(timestamp.getTime() * tenMinutes) < new Date()) {
+          return res.status(StatusCodes.NO_CONTENT);
+        }
 
         wsClient.ws.send(
           getResponseMessage(CallbackResponseMessageType.SubscribeFollow, data.event)
@@ -58,6 +62,7 @@ callback.post('/', async (req, res) => {
         res.writeHead(StatusCodes.OK, { 'Content-Type': 'text/plain' });
         res.write(data.challenge);
         res.end();
+        wsClient.ws.send(JSON.stringify({ type: 'verification/' + data.subscription.type }));
         return;
       }
       case TwitchEventSubType.Revocation: {
