@@ -13,7 +13,7 @@ export const unsubscribeFromFailed = async () => {
   if (!accessToken) {
     return console.log('[ERR] Get access token error on unsubscribeFromFailed');
   }
-  console.log(accessToken);
+
   const res: {
     data: {
       id: string;
