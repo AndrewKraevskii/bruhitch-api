@@ -55,6 +55,7 @@ export const subscribePrediction = async (id: string) => {
   }));
 
   if (begin.status !== 202) {
+    console.log('Begin: ', begin.data);
     return wsClient.ws.send(getErrorMessage(begin.data?.error ?? 'problem with subscribe'));
   }
 
@@ -83,6 +84,7 @@ export const subscribePrediction = async (id: string) => {
   }));
 
   if (progress.status !== 202) {
+    console.log('Progress: ', begin.data);
     return wsClient.ws.send(getErrorMessage(progress.data?.error ?? 'problem with subscribe'));
   }
 
@@ -111,6 +113,7 @@ export const subscribePrediction = async (id: string) => {
   }));
 
   if (end.status !== 202) {
+    console.log('End: ', begin.data);
     return wsClient.ws.send(getErrorMessage(progress.data?.error ?? 'problem with subscribe'));
   }
 
