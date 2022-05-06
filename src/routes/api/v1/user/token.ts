@@ -62,7 +62,7 @@ token.get('/', async (req, res) => {
     hasNotRequiredScope = !data.scope.includes(scope);
   });
 
-  if (!hasNotRequiredScope) {
+  if (hasNotRequiredScope) {
     return res.redirect('/api/v1/auth/logout');
   }
 
