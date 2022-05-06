@@ -62,5 +62,4 @@ export const unsubscribeFromFailed = async () => {
   idsToUnsubscribe.forEach(async (v) => {
     await unsubscribeFromEvent(v);
   });
-  console.log('[INFO] successfully unsubscribe from failed');
 };

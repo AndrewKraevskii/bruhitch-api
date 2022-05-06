@@ -1,9 +1,11 @@
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import { config } from 'dotenv';
-import express from 'express';
+import express, { ErrorRequestHandler } from 'express';
 import http from 'http';
+import { StatusCodes } from 'http-status-codes';
 import WebSocket from 'ws';
+import { getErrorMessage } from './lib/error';
 import { unsubscribeFromFailed } from './lib/unsubscribeFromFailed';
 import apiV1 from './routes/api/v1';
 import { createWebSocketCallback } from './ws';
@@ -27,6 +29,13 @@ webSocketServer.on('listening', () =>
 app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
+
+const errorMiddleware: ErrorRequestHandler = (err, req, res, next) => {
+  console.error(err);
+  return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(getErrorMessage('unhandled error'));
+};
+
+app.use(errorMiddleware);
 
 app.use('/api/v1', apiV1);
 
