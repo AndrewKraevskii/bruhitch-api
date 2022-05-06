@@ -27,6 +27,10 @@ export const getWsClient = (id: string): WsClient | undefined => {
   return (global as any).wsClients.find((v: WsClient) => v.id === id);
 };
 
+export const getWsClientIds = (): string[] => {
+  return (global as any).wsClients.map((v: WsClient) => v.id);
+};
+
 export const addSubscribeTypeInWsClient = (id: string, type: RequestMessageType) => {
   const currentWsClient = getWsClient(id);
   if (!currentWsClient) return;

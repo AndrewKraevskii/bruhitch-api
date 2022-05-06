@@ -5,6 +5,7 @@ import getAccessToken from './getAccessToken';
 import getEnv from './getEnv';
 import { eventSubRegex } from './getEventSubCallback';
 import unsubscribeFromEvent from './unsubscribeFromEvent';
+import { getWsClientIds } from './ws';
 
 export const unsubscribeFromFailed = async () => {
   const clientId = getEnv(Environment.TwitchClientId);
@@ -47,15 +48,19 @@ export const unsubscribeFromFailed = async () => {
 
   let idsToUnsubscribe: string[] = [];
 
+  let wsClientIds = getWsClientIds();
   res.data.forEach((v) => {
     if (v.status === 'webhook_callback_verification_failed') {
       return idsToUnsubscribe.push(v.id);
     }
-    const [, origin, endpoint] = eventSubRegex.exec(v.transport.callback);
+    const [, origin, endpoint, clientId] = eventSubRegex.exec(v.transport.callback);
     if (getEnv(Environment.CallbackOrigin) !== origin) {
       return idsToUnsubscribe.push(v.id);
     }
     if (!['follow', 'prediction'].includes(endpoint)) {
+      return idsToUnsubscribe.push(v.id);
+    }
+    if (!wsClientIds.includes(clientId)) {
       return idsToUnsubscribe.push(v.id);
     }
   });
