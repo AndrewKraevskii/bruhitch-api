@@ -3,6 +3,7 @@ import { StatusCodes } from 'http-status-codes';
 import { prisma } from '../../../../lib/db';
 import { getErrorMessage } from '../../../../lib/error';
 import getEnv from '../../../../lib/getEnv';
+import getScopes from '../../../../lib/getScopes';
 import refreshToken from '../../../../lib/refreshToken';
 import { Environment } from '../../../../types/env';
 import { RefreshToken, TwitchError } from '../../../../types/twitch';
@@ -53,6 +54,16 @@ token.get('/', async (req, res) => {
   const data = refreshResult as RefreshToken;
   if (error.status) {
     return res.status(error.status).json(getErrorMessage(error.message));
+  }
+
+  let hasNotRequiredScope = false;
+  getScopes().forEach((scope) => {
+    if (hasNotRequiredScope) return;
+    hasNotRequiredScope = !data.scope.includes(scope);
+  });
+
+  if (!hasNotRequiredScope) {
+    return res.redirect('/api/v1/auth/logout');
   }
 
   await prisma.twitch.update({
