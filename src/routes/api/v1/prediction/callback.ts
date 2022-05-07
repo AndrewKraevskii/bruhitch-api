@@ -60,6 +60,7 @@ callback.post('/', async (req, res) => {
           return res.status(StatusCodes.NO_CONTENT);
         }
 
+        console.log('Prediction', data.event)
         switch (data.subscription.type) {
           case TwitchEventType.PredictionBegin: {
             wsClient.ws.send(

@@ -41,6 +41,7 @@ callback.post('/', async (req, res) => {
       addEventSubIdInWsClient(clientId, data.subscription.id);
     }
 
+    console.log('Follow', data.event)
     switch (type) {
       case TwitchEventSubType.Notification: {
         if (data.subscription.type !== TwitchEventType.Follow)
