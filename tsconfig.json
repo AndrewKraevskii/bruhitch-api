@@ -18,7 +18,9 @@
       "$routes": ["src/routes"],
       "$routes/*": ["src/routes/*"],
       "$types": ["src/types"],
-      "$types/*": ["src/types/*"]
+      "$types/*": ["src/types/*"],
+      "$eventsub": ["src/eventsub"],
+      "$eventsub/*": ["src/eventsub/*"]
     }
   },
   "include": ["src/**/*.ts"],

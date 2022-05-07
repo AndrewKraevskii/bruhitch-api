@@ -10,7 +10,8 @@
     "$lib": "build/lib",
     "$middlewares": "build/middlewares",
     "$routes": "build/routes",
-    "$types": "build/types"
+    "$types": "build/types",
+    "$eventsub": "build/eventsub"
   },
   "scripts": {
     "dev": "concurrently --names \"Typescript,Express\" -c \"blue.bold,yellow.bold\" \"tsc -w\" \"ts-node-dev --respawn --transpile-only src/app.ts\"",
