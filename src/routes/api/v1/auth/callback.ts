@@ -34,46 +34,36 @@ callback.get(
     //#endregion
 
     //#region Get or Create User. Twitch, TwitchToken included
-    let user = await prisma.user.findUnique({
+    let user = await prisma.user.upsert({
       where: {
         id: userInfo.sub
-      }
-    });
-    if (!user) {
-      user = await prisma.user.create({
-        data: {
-          id: userInfo.sub,
-          username: userInfo.preferred_username,
-          avatar: userInfo.picture,
-          Twitch: {
-            create: {
-              accessToken: token.access_token,
-              refreshToken: token.refresh_token
-            }
-          },
-          TwitchToken: {
-            create: {}
-          }
-        }
-      });
-    } else {
-      user = await prisma.user.update({
-        data: {
-          Twitch: {
-            update: {
-              accessToken: token.access_token,
-              refreshToken: token.refresh_token
-            }
-          },
-          RefreshToken: {
-            delete: true
+      },
+      update: {
+        Twitch: {
+          update: {
+            accessToken: token.access_token,
+            refreshToken: token.refresh_token
           }
         },
-        where: {
-          id: user.id
+        RefreshToken: {
+          delete: true
         }
-      });
-    }
+      },
+      create: {
+        id: userInfo.sub,
+        username: userInfo.preferred_username,
+        avatar: userInfo.picture,
+        Twitch: {
+          create: {
+            accessToken: token.access_token,
+            refreshToken: token.refresh_token
+          }
+        },
+        TwitchToken: {
+          create: {}
+        }
+      }
+    });
     //#endregion
 
     //#region Generate Tokens

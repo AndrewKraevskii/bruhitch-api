@@ -2,9 +2,16 @@
 
 ## Response On error
 
-| Status code                                                           | Body                                | Description                                                                                                    |
-| :-------------------------------------------------------------------- | :---------------------------------- | :------------------------------------------------------------------------------------------------------------- |
-| The status code will be generated and additionally placed in the body | `{status: number, message: string}` | On unexpected error status code is 500, message is 'Unexpected error: `id`', where id - id of error in console |
+```typescript
+{
+  status: number;
+  message: string;
+}
+```
+
+| Status code                                                           | Description                                                                                                    |
+| :-------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------- |
+| The status code will be generated and additionally placed in the body | On unexpected error status code is 500, message is 'Unexpected error: `id`', where id - id of error in console |
 
 ## `GET` /api/v1/auth/login
 
@@ -90,13 +97,13 @@
 
 ### Result
 
-- `200` - user object
+- `200` - Result object
 - `400` - on incorrect refresh token
 - `403` - on invalid refresh token
 - `500` - on user does not find by refresh token
 - `500` - on create refresh token error
 
-#### User Object
+#### Result Object
 
 ```typescript
 {
@@ -211,5 +218,42 @@
 ```typescript
 {
   link: string;
+}
+```
+
+## `DELETE` /api/v1/user/remove
+
+### How to use
+
+> Remove account
+
+### Cookies
+
+- `at` - Access token
+
+### Description
+
+1. Check for access token
+2. Validate access token
+3. Find and revoke twitch access token
+4. Delete user
+5. Send deleted user
+
+### Result
+
+- `200` - Result Object
+- `403` - on incorrect access_token
+- `403` - on invalid access_token
+- `500` - on delete user error
+
+#### Result Object
+
+```typescript
+{
+  id: string;
+  username: string;
+  avatar: string;
+  createdAt: string;
+  updatedAt: string;
 }
 ```
