@@ -1,97 +1,87 @@
-import { RefreshToken, User } from '@prisma/client';
-import { Router } from 'express';
-import { StatusCodes } from 'http-status-codes';
-import { prisma } from '../../../../lib/db';
-import { getErrorMessage } from '../../../../lib/error';
+import ApiError from '$exceptions/apiError';
+import { prisma } from '$lib/db';
+import handleErrorAsync from '$lib/handleErrorAsync';
 import {
   generateJWTToken,
   generateRefreshToken,
   getDataFromJWTToken,
   verifyJWTToken
-} from '../../../../lib/jwt';
+} from '$lib/jwt';
+import { RefreshToken } from '@prisma/client';
+import { Router } from 'express';
+import { StatusCodes } from 'http-status-codes';
 
 const refresh = Router();
 
-refresh.post('/', async (req, res) => {
-  const { rt } = req.cookies as { rt: string };
+refresh.post(
+  '/',
+  handleErrorAsync(async (req, res) => {
+    const { rt } = req.cookies as { rt: string };
 
-  if (!rt) {
-    return res
-      .status(StatusCodes.BAD_REQUEST)
-      .clearCookie('at')
-      .clearCookie('rt')
-      .json(getErrorMessage('incorrect refresh token'));
-  }
+    //#region Check for refresh token
+    if (!rt) {
+      res.clearCookie('at').clearCookie('rt');
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Incorrect refresh token');
+    }
+    //#endregion
 
-  if (!verifyJWTToken(rt)) {
-    return res
-      .status(StatusCodes.FORBIDDEN)
-      .clearCookie('at')
-      .clearCookie('rt')
-      .json(getErrorMessage('invalid refresh token'));
-  }
+    //#region Validate refresh token
+    if (!verifyJWTToken(rt)) {
+      res.clearCookie('at').clearCookie('rt');
+      throw new ApiError(StatusCodes.FORBIDDEN, 'Invalid refresh token');
+    }
+    //#endregion
 
-  const data = getDataFromJWTToken<RefreshToken>(rt);
+    //#region Get User from refresh token
+    const { id: refreshTokenId } = getDataFromJWTToken<RefreshToken>(rt);
 
-  let user: User;
-  try {
-    user = (
-      await prisma.refreshToken.delete({
+    const user = (
+      await prisma.refreshToken.findUnique({
         where: {
-          id: data.id
+          id: refreshTokenId
         },
-        select: {
-          User: true
-        }
+        select: { User: true }
       })
-    ).User;
-    if (!user)
-      return res
-        .status(StatusCodes.INTERNAL_SERVER_ERROR)
-        .clearCookie('at')
-        .clearCookie('rt')
-        .json(getErrorMessage('user does not find by refresh token'));
-  } catch (e) {
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .clearCookie('at')
-      .clearCookie('rt')
-      .json(getErrorMessage('user does not find by refresh token'));
-  }
+    )?.User;
 
-  let refreshTokenEntity: RefreshToken;
-  try {
-    refreshTokenEntity = await prisma.refreshToken.create({
+    if (!user) {
+      res.clearCookie('at').clearCookie('rt');
+      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'User does not find by refresh token');
+    }
+    //#endregion
+
+    //#region Update refresh token
+    await prisma.refreshToken.delete({ where: { id: refreshTokenId } });
+    let refreshTokenEntity = await prisma.refreshToken.create({
       data: {
         userId: user.id
       }
     });
-  } catch (e) {
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json(getErrorMessage('error on create refresh token'));
-  }
 
-  const accessToken = generateJWTToken(user);
-  const refreshToken = generateRefreshToken(refreshTokenEntity.id);
+    const accessToken = generateJWTToken(user);
+    const refreshToken = generateRefreshToken(refreshTokenEntity.id);
+    //#endregion
 
-  res
-    .cookie('at', accessToken.token, {
-      maxAge: accessToken.expiresIn * 1000,
-      path: '/',
-      secure: req.secure,
-      httpOnly: true,
-      sameSite: 'strict'
-    })
-    .cookie('rt', refreshToken.token, {
-      maxAge: refreshToken.expiresIn * 1000,
-      path: '/',
-      secure: req.secure,
-      httpOnly: true,
-      sameSite: 'strict'
-    });
+    //#region Set tokens into cookie
+    res
+      .cookie('at', accessToken.token, {
+        maxAge: accessToken.expiresIn * 1000,
+        path: '/',
+        secure: req.secure,
+        httpOnly: true,
+        sameSite: 'strict'
+      })
+      .cookie('rt', refreshToken.token, {
+        maxAge: refreshToken.expiresIn * 1000,
+        path: '/',
+        secure: req.secure,
+        httpOnly: true,
+        sameSite: 'strict'
+      });
+    //#endregion
 
-  res.status(StatusCodes.OK).json(user);
-});
+    res.status(StatusCodes.OK).json(user);
+  })
+);
 
 export default refresh;
