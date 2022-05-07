@@ -5,6 +5,10 @@ import { v4 } from 'uuid';
 
 const errorMiddleware: ErrorRequestHandler = (err, req, res, next) => {
   if (err instanceof ApiError) {
+    if (err.status === StatusCodes.INTERNAL_SERVER_ERROR) {
+      console.error(err);
+    }
+
     return res.status(err.status).json({ status: err.status, message: err.message });
   }
 
