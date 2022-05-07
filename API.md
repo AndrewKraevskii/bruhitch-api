@@ -169,8 +169,8 @@
 ### Result
 
 - `200` - Result Object
-- `403` - on incorrect access_token
-- `403` - on invalid access_token
+- `403` - on incorrect access token
+- `403` - on invalid access token
 
 #### Result Object
 
@@ -210,8 +210,8 @@
 
 - `200` - Result Object
 - `400` - on incorrect link
-- `403` - on incorrect access_token
-- `403` - on invalid access_token
+- `403` - on incorrect access token
+- `403` - on invalid access token
 
 #### Result Object
 
@@ -235,15 +235,14 @@
 
 1. Check for access token
 2. Validate access token
-3. Find and revoke twitch access token
-4. Delete user
-5. Send deleted user
+3. Delete user and revoke twitch access token
+4. Send deleted user
 
 ### Result
 
 - `200` - Result Object
-- `403` - on incorrect access_token
-- `403` - on invalid access_token
+- `403` - on incorrect access token
+- `403` - on invalid access token
 - `500` - on delete user error
 
 #### Result Object
@@ -255,5 +254,107 @@
   avatar: string;
   createdAt: string;
   updatedAt: string;
+}
+```
+
+## `GET` /api/v1/user/token
+
+### How to use
+
+> Get token to use in widgets
+
+### Cookies
+
+- `at` - Access token
+
+### Description
+
+1. Check for access token
+2. Validate access token
+3. Get token
+4. Send token
+
+### Result
+
+- `200` - Result Object
+- `403` - on incorrect access token
+- `403` - on invalid access token
+
+#### Result Object
+
+```typescript
+{
+  token: TwitchToken | null;
+}
+```
+
+## `PATCH` /api/v1/user/token
+
+### How to use
+
+> Refresh token
+
+### Cookies
+
+- `at` - Access token
+
+### Description
+
+1. Check for access token
+2. Validate access token
+3. Recreate token
+
+### Result
+
+- `200` - Result Object
+- `403` - on incorrect access token
+- `403` - on invalid access token
+
+#### Result Object
+
+```typescript
+{
+  token: TwitchToken | null;
+}
+```
+
+## `GET` /api/v1/user/twitch
+
+### How to use
+
+> Get twitch user token and other info
+
+### Query parameters
+
+- `token` - Twitch token
+
+### Description
+
+1. Check for twitch token
+2. Get user by twitch token and select Twitch refresh token
+3. Refresh token
+4. Check required scopes to equal default scopes
+5. Update Twitch, add access and refresh tokens
+6. Send user info
+
+### Result
+
+- `200` - Result Object
+- `403` - on incorrect twitch token
+- `403` - on invalid twitch token
+- `403` - required scopes are not equals default scopes
+- `500` - does not find twitch token
+- `500` - does not find twitch
+- `500` - on refresh token error
+
+#### Result Object
+
+```typescript
+{
+  accessToken: string;
+  userId: string;
+  user: string;
+  clientId: string;
+  scope: TwitchScope[];
 }
 ```

@@ -23,22 +23,25 @@ remove.delete(
 
     let user = getDataFromJWTToken<User>(at);
 
-    //#region Find and revoke twitch access token
-    const tokens = await prisma.twitch.findUnique({
-      where: { userId: user.id },
-      select: {
-        accessToken: true
+    //#region Delete user and revoke twitch access token
+    try {
+      const userEntity = await prisma.user.delete({
+        where: { id: user.id },
+        select: {
+          Twitch: {
+            select: {
+              accessToken: true
+            }
+          }
+        }
+      });
+      if (userEntity && userEntity.Twitch) {
+        await revokeAccessToken(userEntity.Twitch.accessToken);
       }
-    });
-    if (tokens && tokens.accessToken) {
-      await revokeAccessToken(tokens.accessToken);
-    }
+    } catch (e) {}
     //#endregion
 
     //#region Delete user
-    try {
-      user = await prisma.user.delete({ where: { id: user.id } });
-    } catch (e) {}
     //#endregion
 
     res.status(StatusCodes.OK).json(user);
