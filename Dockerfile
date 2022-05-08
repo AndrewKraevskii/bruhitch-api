@@ -26,4 +26,4 @@ COPY --from=build /app/prisma ./prisma/
 
 
 EXPOSE 3005
-CMD ["node", "./build/index.js"]
+CMD ["node", "./build/app.js"]
