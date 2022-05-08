@@ -8,10 +8,18 @@ declare global {
     interface ProcessEnv {
       TWITCH_CLIENT_ID: string;
       TWITCH_SECRET_KEY: string;
+      DONATIONALERTS_CLIENT_ID: string;
+      DONATIONALERTS_SECRET_KEY: string;
       SECRET_KEY: string;
       CALLBACK_ORIGIN: string;
       PORT?: string;
     }
+  }
+}
+
+declare module 'express-session' {
+  interface SessionData {
+    userId: string;
   }
 }
 

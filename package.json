@@ -6,6 +6,7 @@
   "author": "BruhaBruh <drugsho.jaker@gmail.com>",
   "license": "MIT",
   "_moduleAliases": {
+    "$donationalerts": "build/donationalerts",
     "$exceptions": "build/exceptions",
     "$lib": "build/lib",
     "$middlewares": "build/middlewares",
@@ -23,6 +24,7 @@
     "@types/cookie-parser": "^1.4.3",
     "@types/cors": "^2.8.12",
     "@types/express": "^4.17.13",
+    "@types/express-session": "^1.17.4",
     "@types/http-status-codes": "^1.2.0",
     "@types/node": "^17.0.31",
     "@types/uuid": "^8.3.4",
@@ -39,6 +41,7 @@
     "cross-fetch": "^3.1.5",
     "dotenv": "^16.0.0",
     "express": "^4.18.1",
+    "express-session": "^1.17.2",
     "http-status-codes": "^2.2.0",
     "module-alias": "^2.2.2",
     "prisma": "^3.13.0",

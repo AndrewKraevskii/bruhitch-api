@@ -22,7 +22,7 @@
 ### Description
 
 1. Generate redirect URI
-2. Add Claims, ClientId, RedirectURI, ResponseType and Scope
+2. Add Claims, ClientId, RedirectURI, ResponseType and Scopes
 
 ### Result
 
@@ -65,11 +65,12 @@
 6. Generate Access Token
 7. Update or Create Refresh Token
 8. Set Access and Refresh tokens in cookie
-9. Redirect to /
+9. Set UserId in session
+10. Redirect to /api/v1/donationalerts/login
 
 ### Result
 
-- `308` - redirect to /
+- `308` - redirect to /api/v1/donationalerts/login
 - `400` - on code is invalid
 - `403` - on twitch send error. In message error description
 - `403` - on scopes are not equals of default app scopes
@@ -385,7 +386,7 @@
 #### Result Object
 
 ```typescript
-SubscribeSettings || null;
+SubscribeSettings | null;
 ```
 
 ## `POST` /api/v1/subscribe/settings
@@ -415,7 +416,7 @@ SubscribeSettings || null;
 #### Result Object
 
 ```typescript
-SubscribeSettings || null;
+SubscribeSettings | null;
 ```
 
 ## `GET` /api/v1/follow/settings
@@ -444,7 +445,7 @@ SubscribeSettings || null;
 #### Result Object
 
 ```typescript
-FollowSettings || null;
+FollowSettings | null;
 ```
 
 ## `POST` /api/v1/follow/settings
@@ -474,7 +475,7 @@ FollowSettings || null;
 #### Result Object
 
 ```typescript
-FollowSettings || null;
+FollowSettings | null;
 ```
 
 ## `POST` /api/v1/follow/callback
@@ -555,7 +556,7 @@ FollowSettings || null;
 #### Result Object
 
 ```typescript
-PredictionSettings || null;
+PredictionSettings | null;
 ```
 
 ## `POST` /api/v1/prediction/settings
@@ -585,7 +586,7 @@ PredictionSettings || null;
 #### Result Object
 
 ```typescript
-PredictionSettings || null;
+PredictionSettings | null;
 ```
 
 ## `POST` /api/v1/prediction/callback
@@ -639,3 +640,74 @@ PredictionSettings || null;
 - `403` - on invalid clientId
 - `403` - on failed verification
 - `404` - on undefined message type
+
+## `GET` /api/v1/donationalerts/login
+
+### How to use
+
+> Use to authorize user by DonationAlerts
+
+### Description
+
+1. Generate redirect URI
+2. Add ClientId, RedirectURI, ResponseType and Scopes
+
+### Result
+
+- `307` - redirect to DonationAlerts OAuth page
+
+## `GET` /api/v1/donationalerts/callback
+
+### How to use
+
+> Uses Twitch after OAuth
+
+### Query Parameters
+
+- `code` - Code. Result of OAuth
+- `error` - Error
+
+### Description
+
+1. Validate callback
+2. Get DonationAlerts tokens
+3. Save DonationAlerts
+4. Redirect to /
+
+### Result
+
+- `308` - redirect to /
+- `400` - on code is invalid
+- `403` - on invalid user id
+- `500` - on get DonationAlerts tokens error
+
+## `GET` /api/v1/donationalerts/token
+
+### How to use
+
+> Use to get access token
+
+### Query parameters
+
+- `token` - Twitch token
+
+### Description
+
+1. Check for token
+2. Get DonationAlerts
+3. Refresh DonationAlerts token
+4. Send access token
+
+### Result
+
+- `200` - Result Object
+- `403` - on incorrect token
+- `403` - on invalid token
+
+#### Result Object
+
+```typescript
+{
+  accessToken: string | null;
+}
+```

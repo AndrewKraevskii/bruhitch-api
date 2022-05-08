@@ -95,7 +95,9 @@ callback.get(
       });
     //#endregion
 
-    res.status(StatusCodes.PERMANENT_REDIRECT).redirect('/');
+    req.session.userId = user.id;
+
+    res.status(StatusCodes.PERMANENT_REDIRECT).redirect('/api/v1/donationalerts/login');
   })
 );
 

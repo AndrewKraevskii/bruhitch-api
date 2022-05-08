@@ -23,6 +23,7 @@ model User {
   FollowSettings     FollowSettings?
   SubscribeSettings  SubscribeSettings?
   PredictionSettings PredictionSettings?
+  DonationAlerts     DonationAlerts?
 }
 
 model RefreshToken {
@@ -43,6 +44,13 @@ model TwitchToken {
   id     String @id @default(cuid())
   User   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String @unique @db.VarChar(16)
+}
+
+model DonationAlerts {
+  id           String @id @default(cuid())
+  refreshToken String @db.VarChar(1024)
+  User         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String @unique @db.VarChar(16)
 }
 
 model ChatSettings {
