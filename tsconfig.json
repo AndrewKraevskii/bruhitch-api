@@ -9,6 +9,8 @@
     "outDir": "build",
     "baseUrl": ".",
     "paths": {
+      "$donationalerts": ["src/donationalerts"],
+      "$donationalerts/*": ["src/donationalerts/*"],
       "$exceptions": ["src/exceptions"],
       "$exceptions/*": ["src/exceptions/*"],
       "$lib": ["src/lib"],
