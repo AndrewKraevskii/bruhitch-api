@@ -1,12 +1,12 @@
+import remove from '$routes/api/v1/user/remove';
+import token from '$routes/api/v1/user/token';
+import twitch from '$routes/api/v1/user/twitch';
 import { Router } from 'express';
-import remove from './remove';
-import token from './token';
-import twitch from './twitch';
 
-const index = Router();
+const user = Router();
 
-index.use('/remove', remove);
-index.use('/twitch', twitch);
-index.use('/token', token);
+user.use('/remove', remove);
+user.use('/token', token);
+user.use('/twitch', twitch);
 
-export default index;
+export default user;

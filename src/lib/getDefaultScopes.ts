@@ -1,6 +1,6 @@
-import { TwitchScope } from '../types/twitch';
+import { TwitchScope } from '$types/twitch';
 
-const getScopes = (): TwitchScope[] => {
+const getDefaultScopes = (): TwitchScope[] => {
   return [
     TwitchScope.OpenId,
     TwitchScope.ReadEmail,
@@ -10,4 +10,4 @@ const getScopes = (): TwitchScope[] => {
   ];
 };
 
-export default getScopes;
+export default getDefaultScopes;

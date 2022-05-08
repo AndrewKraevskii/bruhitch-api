@@ -1,74 +1,71 @@
+import ApiError from '$exceptions/apiError';
+import { prisma } from '$lib/db';
+import handleErrorAsync from '$lib/handleErrorAsync';
+import { getDataFromJWTToken, verifyJWTToken } from '$lib/jwt';
 import { User } from '@prisma/client';
 import { Router } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { prisma } from '../../../../lib/db';
-import { getErrorMessage } from '../../../../lib/error';
-import { getDataFromJWTToken, verifyJWTToken } from '../../../../lib/jwt';
 
 const link = Router();
 
-link.get('/', async (req, res) => {
-  const { at } = req.cookies as { at: string | undefined };
-  if (!at) return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage('incorrect access_token'));
+link.get(
+  '/',
+  handleErrorAsync(async (req, res) => {
+    //#region Check for access token
+    const { at } = req.cookies as { [key: string]: string | undefined };
+    if (!at) throw new ApiError(StatusCodes.FORBIDDEN, 'Incorrect access token');
+    //#endregion
 
-  if (!verifyJWTToken(at))
-    return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage('invalid access_token'));
+    //#region Validate access token
+    if (!verifyJWTToken(at)) throw new ApiError(StatusCodes.FORBIDDEN, 'Invalid access token');
+    //#endregion
 
-  const user = getDataFromJWTToken<User>(at);
+    //#region Get chat settings link
+    const user = getDataFromJWTToken<User>(at);
+    const chatSettings = await prisma.chatSettings.findUnique({
+      where: {
+        userId: user.id
+      }
+    });
+    //#endregion
 
-  try {
-    const { link } = await prisma.chatSettings.findUnique({
+    res.status(StatusCodes.OK).json({ link: chatSettings?.link ? chatSettings?.link : null });
+  })
+);
+
+link.post(
+  '/',
+  handleErrorAsync(async (req, res) => {
+    //#region Check for link
+    const { link } = req.body as { [key: string]: string | undefined };
+    if (!link) throw new ApiError(StatusCodes.BAD_REQUEST, 'Incorrect link');
+    //#endregion
+
+    //#region Check for access token
+    const { at } = req.cookies as { [key: string]: string | undefined };
+    if (!at) throw new ApiError(StatusCodes.FORBIDDEN, 'Incorrect access token');
+    //#endregion
+
+    //#region Validate access token
+    if (!verifyJWTToken(at)) throw new ApiError(StatusCodes.FORBIDDEN, 'Invalid access token');
+    //#endregion
+
+    //#region Get chat settings link
+    const user = getDataFromJWTToken<User>(at);
+    const chatSettings = await prisma.chatSettings.upsert({
       where: {
         userId: user.id
       },
-      select: {
-        link: true
-      }
-    });
-    res.status(StatusCodes.OK).json({ link });
-  } catch (e) {
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(getErrorMessage('error on get link'));
-  }
-});
-
-link.post('/', async (req, res) => {
-  const { at } = req.cookies as { at: string | undefined };
-  if (!at) return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage('incorrect access_token'));
-
-  if (!verifyJWTToken(at))
-    return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage('invalid access_token'));
-
-  const { link } = req.body as { link: string | undefined };
-  if (!link)
-    return res.status(StatusCodes.BAD_REQUEST).json(getErrorMessage('link is not defined'));
-
-  const user = getDataFromJWTToken<User>(at);
-
-  try {
-    await prisma.chatSettings.update({
-      data: {
+      update: { link },
+      create: {
+        userId: user.id,
         link
-      },
-      where: {
-        userId: user.id
       }
     });
-  } catch (e) {
-    try {
-      await prisma.chatSettings.create({
-        data: {
-          userId: user.id,
-          link: link
-        }
-      });
-    } catch (e) {
-      return res
-        .status(StatusCodes.INTERNAL_SERVER_ERROR)
-        .json(getErrorMessage('error on save link'));
-    }
-  }
+    //#endregion
 
-  res.status(StatusCodes.OK).json({ link });
-});
+    res.status(StatusCodes.OK).json({ link: chatSettings.link });
+  })
+);
 
 export default link;

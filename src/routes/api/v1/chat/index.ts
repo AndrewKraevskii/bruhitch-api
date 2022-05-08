@@ -1,6 +1,6 @@
+import badges from '$routes/api/v1/chat/badges';
+import link from '$routes/api/v1/chat/link';
 import { Router } from 'express';
-import badges from './badges';
-import link from './link';
 
 const chat = Router();
 

@@ -1,66 +1,81 @@
-import { TwitchToken, User } from '@prisma/client';
+import ApiError from '$exceptions/apiError';
+import { prisma } from '$lib/db';
+import getDefaultScopes from '$lib/getDefaultScopes';
+import handleErrorAsync from '$lib/handleErrorAsync';
+import refreshToken from '$lib/refreshToken';
 import { Router } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { prisma } from '../../../../lib/db';
-import { getErrorMessage } from '../../../../lib/error';
-import { getDataFromJWTToken, verifyJWTToken } from '../../../../lib/jwt';
 
 const twitch = Router();
 
-twitch.get('/', async (req, res) => {
-  const { at } = req.cookies as { at: string | undefined };
-  if (!at) return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage('incorrect access_token'));
+twitch.get(
+  '/',
+  handleErrorAsync(async (req, res) => {
+    //#region Check for twitch token
+    const { token } = req.query as { [key: string]: string | undefined };
+    if (!token) throw new ApiError(StatusCodes.FORBIDDEN, 'Incorrect token');
+    //#endregion
 
-  if (!verifyJWTToken(at))
-    return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage('invalid access_token'));
-
-  const user = getDataFromJWTToken<User>(at);
-
-  try {
-    const token = await prisma.twitchToken.findUnique({
-      where: { userId: user.id },
-      select: { id: true }
+    //#region Get user by twitch token and select Twitch refresh token
+    const twitchToken = await prisma.twitchToken.findUnique({
+      where: { id: token },
+      select: {
+        User: {
+          select: {
+            id: true,
+            username: true,
+            Twitch: {
+              select: {
+                refreshToken: true
+              }
+            }
+          }
+        }
+      }
     });
-    res.status(StatusCodes.OK).json(token);
-  } catch (e) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(getErrorMessage('error on get token'));
-  }
-});
+    if (!twitchToken)
+      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Does not find twitch token');
+    if (!twitchToken.User.Twitch)
+      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Does not find twitch');
+    //#endregion
 
-twitch.delete('/', async (req, res) => {
-  const { at } = req.cookies as { at: string | undefined };
-  if (!at) return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage('incorrect access_token'));
+    //#region Refresh token
+    const refreshResult = await refreshToken(twitchToken.User.Twitch.refreshToken);
+    //#endregion
 
-  if (!verifyJWTToken(at))
-    return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage('invalid access_token'));
-
-  const user = getDataFromJWTToken<User>(at);
-
-  let prevToken: TwitchToken;
-  try {
-    prevToken = await prisma.twitchToken.delete({
-      where: { userId: user.id }
+    //#region Check required scopes to equal default scopes
+    let hasNotRequiredScope = false;
+    getDefaultScopes().forEach((scope) => {
+      if (hasNotRequiredScope) return;
+      hasNotRequiredScope = !refreshResult.scope.includes(scope);
     });
-    if (!prevToken)
-      return res
-        .status(StatusCodes.INTERNAL_SERVER_ERROR)
-        .json(getErrorMessage('error on delete token, token is null'));
-  } catch (e) {
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json(getErrorMessage('error on delete token'));
-  }
 
-  try {
-    const token = await prisma.twitchToken.create({
-      data: { userId: user.id }
+    if (hasNotRequiredScope) {
+      res.clearCookie('at').clearCookie('rt');
+      throw new ApiError(StatusCodes.FORBIDDEN, 'Required scopes are not equals default scopes');
+    }
+    //#endregion
+
+    //#region Update Twitch, add access and refresh tokens
+    await prisma.twitch.update({
+      data: {
+        accessToken: refreshResult.access_token,
+        refreshToken: refreshResult.refresh_token
+      },
+      where: {
+        userId: twitchToken.User.id
+      }
     });
-    return res.status(StatusCodes.OK).json(token);
-  } catch (e) {
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json(getErrorMessage('error on delete token'));
-  }
-});
+    //#endregion
+
+    res.status(StatusCodes.OK).json({
+      accessToken: refreshResult.access_token,
+      userId: twitchToken.User.id,
+      user: twitchToken.User.username,
+      clientId: process.env.TWITCH_CLIENT_ID,
+      scope: refreshResult.scope
+    });
+  })
+);
 
 export default twitch;

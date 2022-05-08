@@ -1,5 +1,5 @@
+import settings from '$routes/api/v1/subscribe/settings';
 import { Router } from 'express';
-import settings from './settings';
 
 const subscribe = Router();
 

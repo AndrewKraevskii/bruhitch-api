@@ -1,15 +1,12 @@
+import ApiError from '$exceptions/apiError';
+import fetchChannelBadges from '$lib/fetchChannelBadges';
+import fetchGlobalBadges from '$lib/fetchGlobalBadges';
+import getAppAccessToken from '$lib/getAppAccessToken';
+import getUserId from '$lib/getUserId';
+import handleErrorAsync from '$lib/handleErrorAsync';
+import { TwitchBadge } from '$types/badge';
 import { Router } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { getErrorMessage } from '../../../../lib/error';
-import fetchChannelBadges from '../../../../lib/fetchChannelBadges';
-import fetchGlobalBadges from '../../../../lib/fetchGlobalBadges';
-import getAccessToken from '../../../../lib/getAccessToken';
-import getEnv from '../../../../lib/getEnv';
-import getUserId from '../../../../lib/getUserId';
-import { TwitchBadge } from '../../../../types/badge';
-import { Environment } from '../../../../types/env';
-
-const badges = Router();
 
 const mergeBadges = (badges: TwitchBadge[], badges2: TwitchBadge[]): TwitchBadge[] => {
   let mergedBadges = badges2;
@@ -32,42 +29,46 @@ const mergeBadges = (badges: TwitchBadge[], badges2: TwitchBadge[]): TwitchBadge
 
 const fetchAllBadges = async (
   broadcasterId: string,
-  clientId: string,
   accessToken: string
 ): Promise<TwitchBadge[]> => {
-  const globalBadges = await fetchGlobalBadges(clientId, accessToken);
+  const globalBadges = await fetchGlobalBadges(accessToken);
 
-  const chatBadges = await fetchChannelBadges(broadcasterId, clientId, accessToken);
+  const chatBadges = await fetchChannelBadges(broadcasterId, accessToken);
 
   return mergeBadges(globalBadges, chatBadges);
 };
 
-badges.get('/', async (req, res) => {
-  const clientId = getEnv(Environment.TwitchClientId);
-  const secretKey = getEnv(Environment.TwitchSecretKey);
+const badges = Router();
 
-  const { channel } = req.query as { channel: string | undefined };
-  if (!channel)
-    return res.status(StatusCodes.BAD_REQUEST).json(getErrorMessage('channel is not defined'));
+badges.get(
+  '/',
+  handleErrorAsync(async (req, res) => {
+    //#region Check for channel
+    const { channel } = req.query as { [key: string]: string | undefined };
+    if (!channel) throw new ApiError(StatusCodes.BAD_REQUEST, 'Channel is not defined');
+    //#endregion
 
-  const accessToken = await getAccessToken(clientId, secretKey);
-  if (!accessToken)
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json(getErrorMessage('error on get access token'));
+    //#region Get App access token
+    const accessToken = await getAppAccessToken();
+    if (!accessToken)
+      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Get access token error');
+    //#endregion
 
-  const broadcasterId = await getUserId(channel, clientId, accessToken);
-  if (!broadcasterId)
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json(getErrorMessage('error on get broadcaster id'));
+    //#region Get Broadcaster Id
+    const broadcasterId = await getUserId(channel, accessToken);
+    if (!broadcasterId)
+      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Get broadcaster id error');
+    //#endregion
 
-  const badges = await fetchAllBadges(broadcasterId, clientId, accessToken);
+    //#region Fetch all badges
+    const badges = await fetchAllBadges(broadcasterId, accessToken);
+    //#endregion
 
-  res.json({
-    broadcasterId,
-    badges
-  });
-});
+    res.status(StatusCodes.OK).json({
+      broadcasterId,
+      badges
+    });
+  })
+);
 
 export default badges;

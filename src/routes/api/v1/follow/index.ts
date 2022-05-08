@@ -1,10 +1,10 @@
+import callback from '$routes/api/v1/follow/callback';
+import settings from '$routes/api/v1/follow/settings';
 import { Router } from 'express';
-import callback from './callback';
-import settings from './settings';
 
 const follow = Router();
 
-follow.use('/callback', callback);
 follow.use('/settings', settings);
+follow.use('/callback', callback);
 
 export default follow;

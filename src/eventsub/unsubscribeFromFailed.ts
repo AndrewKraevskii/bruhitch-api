@@ -1,15 +1,11 @@
-import fetch from 'cross-fetch';
-import { Environment } from '../types/env';
-import { TwitchEventType } from '../types/twitch';
-import getAccessToken from './getAccessToken';
-import getEnv from './getEnv';
-import { eventSubRegex } from './getEventSubCallback';
+import getAppAccessToken from '$lib/getAppAccessToken';
+import { EventSubType } from '$types/eventsub';
+import eventSubRegex from './eventSubRegex';
+import getWsClientIds from './getWsClientIds';
 import unsubscribeFromEvent from './unsubscribeFromEvent';
-import { getWsClientIds } from './ws';
 
-export const unsubscribeFromFailed = async () => {
-  const clientId = getEnv(Environment.TwitchClientId);
-  const accessToken = await getAccessToken(clientId, getEnv(Environment.TwitchSecretKey));
+const unsubscribeFromFailed = async (isForce: boolean = false) => {
+  const accessToken = await getAppAccessToken();
   if (!accessToken) {
     return console.log('[ERR] Get access token error on unsubscribeFromFailed');
   }
@@ -22,7 +18,7 @@ export const unsubscribeFromFailed = async () => {
         | 'enabled'
         | 'webhook_callback_verification_failed'
         | 'webhook_callback_verification_pending';
-      type: TwitchEventType;
+      type: EventSubType;
       version: '1';
       cost: number;
       condition: {
@@ -41,7 +37,7 @@ export const unsubscribeFromFailed = async () => {
   } = await fetch('https://api.twitch.tv/helix/eventsub/subscriptions', {
     headers: {
       Authorization: `Bearer ${accessToken}`,
-      'Client-Id': clientId
+      'Client-Id': process.env.TWITCH_CLIENT_ID
     }
   })
     .then((r) => r.json())
@@ -51,11 +47,14 @@ export const unsubscribeFromFailed = async () => {
 
   let wsClientIds = getWsClientIds();
   res.data.forEach((v) => {
+    if (isForce) return idsToUnsubscribe.push(v.id);
     if (v.status === 'webhook_callback_verification_failed') {
       return idsToUnsubscribe.push(v.id);
     }
-    const [, origin, endpoint, clientId] = eventSubRegex.exec(v.transport.callback);
-    if (getEnv(Environment.CallbackOrigin) !== origin) {
+    const regexResult = eventSubRegex.exec(v.transport.callback);
+    if (regexResult === null) return;
+    const [, origin, endpoint, clientId] = regexResult;
+    if (process.env.CALLBACK_ORIGIN !== origin) {
       return idsToUnsubscribe.push(v.id);
     }
     if (!['follow', 'prediction'].includes(endpoint)) {
@@ -70,3 +69,5 @@ export const unsubscribeFromFailed = async () => {
     await unsubscribeFromEvent(v);
   });
 };
+
+export default unsubscribeFromFailed;

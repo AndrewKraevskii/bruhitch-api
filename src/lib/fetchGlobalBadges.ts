@@ -1,9 +1,8 @@
-import fetch from 'cross-fetch';
-import { TwitchBadge } from '../types/badge';
-import getHeaders from './getHeaders';
+import getHeaders from '$lib/getHeaders';
+import { TwitchBadge } from '$types/badge';
 
-const fetchGlobalBadges = async (clientId: string, accessToken: string): Promise<TwitchBadge[]> => {
-  const headers = getHeaders(clientId, accessToken);
+const fetchGlobalBadges = async (accessToken: string): Promise<TwitchBadge[]> => {
+  const headers = getHeaders(accessToken);
 
   const globalBadges: { data: TwitchBadge[] } = await fetch(
     'https://api.twitch.tv/helix/chat/badges/global',

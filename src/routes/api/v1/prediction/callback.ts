@@ -1,74 +1,99 @@
+import addEventSubIdInWsClient from '$eventsub/addEventSubIdInWsClient';
+import getHmac from '$eventsub/getHmac';
+import getHmacMessage from '$eventsub/getHmacMessage';
+import getResponseMessage from '$eventsub/getResponseMessage';
+import getWsClient from '$eventsub/getWsClient';
+import HMAC_PREFIX from '$eventsub/hmacPrefix';
+import notificationMaxLifeTime from '$eventsub/notificationMaxLifeTime';
+import verifyMessage from '$eventsub/verifyMessage';
+import ApiError from '$exceptions/apiError';
+import handleErrorAsync from '$lib/handleErrorAsync';
+import { hashSHA256 } from '$lib/sha256';
+import {
+  EventSubCallbackType,
+  EventSubHeader,
+  EventSubResponse,
+  EventSubType
+} from '$types/eventsub';
+import { BaseResponseMessageType, CallbackResponseMessageType } from '$types/ws';
 import { Router } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { getErrorMessage } from '../../../../lib/error';
-import { getHmac, getHmacMessage, HMAC_PREFIX, verifyMessage } from '../../../../lib/eventSub';
-import getEnv from '../../../../lib/getEnv';
-import { addEventSubIdInWsClient, getResponseMessage, getWsClient } from '../../../../lib/ws';
-import { Environment } from '../../../../types/env';
-import {
-  TwitchEventSubResponse,
-  TwitchEventSubType,
-  TwitchEventType,
-  TwitchHeader
-} from '../../../../types/twitch';
-import { CallbackResponseMessageType } from '../../../../types/ws';
 
 const callback = Router();
 
-const tenMinutes = 1000 * 60 * 10;
+callback.post(
+  '/',
+  handleErrorAsync(async (req, res) => {
+    //#region Check for clientId
+    const { clientId } = req.query as { [key: string]: string | undefined };
+    if (!clientId) {
+      throw new ApiError(StatusCodes.FORBIDDEN, 'Incorrect clientId');
+    }
+    //#endregion
 
-callback.post('/', async (req, res) => {
-  const { clientId } = req.query as { clientId: string };
+    //#region Verify message
+    const secret = hashSHA256(process.env.TWITCH_SECRET_KEY);
+    const rawJson = JSON.stringify(req.body);
+    const message = getHmacMessage(req.headers, rawJson);
+    const hmac = HMAC_PREFIX + getHmac(secret, message);
 
-  if (!clientId)
-    return res.status(StatusCodes.BAD_REQUEST).json(getErrorMessage('undefined clientId'));
+    const sign = req.headers[EventSubHeader.Signature] as string;
+    if (!verifyMessage(hmac, sign)) {
+      throw new ApiError(StatusCodes.FORBIDDEN, 'Failed verification');
+    }
+    //#endregion
 
-  const secret = getEnv(Environment.SecretKey);
-  const rawJson = JSON.stringify(req.body);
-  const message = getHmacMessage(req.headers, rawJson);
-  const hmac = HMAC_PREFIX + getHmac(secret, message);
-
-  const sign = req.headers[TwitchHeader.Signature] as string;
-
-  if (verifyMessage(hmac, sign)) {
-    const type = req.headers[TwitchHeader.Type];
-    const data: TwitchEventSubResponse = JSON.parse(rawJson);
+    //#region Validate clientId
 
     const wsClient = getWsClient(clientId);
-    if (!wsClient) return res.status(StatusCodes.INTERNAL_SERVER_ERROR);
 
-    if (!wsClient.eventSubIds.includes(data.subscription.id)) {
-      addEventSubIdInWsClient(clientId, data.subscription.id);
+    if (!wsClient) {
+      throw new ApiError(StatusCodes.FORBIDDEN, 'Invalid clientId');
     }
+    //#endregion
+
+    //#region Check for type of subscription
+    const data: EventSubResponse = JSON.parse(rawJson);
+
+    const allowedTypes = [
+      EventSubType.PredictionBegin,
+      EventSubType.PredictionProgress,
+      EventSubType.PredictionEnd
+    ] as string[];
+
+    if (!allowedTypes.includes(data.subscription.type))
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Incorrect subscription type');
+    //#endregion
+
+    //#region Check for type of message
+
+    const type = req.headers[EventSubHeader.Type];
 
     switch (type) {
-      case TwitchEventSubType.Notification: {
-        if (
-          !(
-            [
-              TwitchEventType.PredictionBegin,
-              TwitchEventType.PredictionProgress,
-              TwitchEventType.PredictionEnd
-            ] as string[]
-          ).includes(data.subscription.type)
-        )
-          return res.status(StatusCodes.BAD_REQUEST);
+      case EventSubCallbackType.Notification: {
+        //#region  Add EventSub Id if does not already exist
+        if (!wsClient.eventSubIds.includes(data.subscription.id)) {
+          addEventSubIdInWsClient(clientId, data.subscription.id);
+        }
+        //#endregion
 
-        const timestamp = new Date(req.headers[TwitchHeader.Timestamp] as string);
+        //#region Check notification life time
+        const timestamp = new Date(req.headers[EventSubHeader.Timestamp] as string);
 
-        if (new Date(timestamp.getTime() * tenMinutes) < new Date()) {
+        if (new Date(timestamp.getTime() * notificationMaxLifeTime) < new Date()) {
           return res.status(StatusCodes.NO_CONTENT);
         }
+        //#endregion
 
         console.log('Prediction', data.event)
         switch (data.subscription.type) {
-          case TwitchEventType.PredictionBegin: {
+          case EventSubType.PredictionBegin: {
             wsClient.ws.send(
               getResponseMessage(CallbackResponseMessageType.SubscribePredictionBegin, data.event)
             );
             break;
           }
-          case TwitchEventType.PredictionProgress: {
+          case EventSubType.PredictionProgress: {
             wsClient.ws.send(
               getResponseMessage(
                 CallbackResponseMessageType.SubscribePredictionProgress,
@@ -77,37 +102,67 @@ callback.post('/', async (req, res) => {
             );
             break;
           }
-          case TwitchEventType.PredictionEnd: {
+          case EventSubType.PredictionEnd: {
             wsClient.ws.send(
               getResponseMessage(CallbackResponseMessageType.SubscribePredictionEnd, data.event)
             );
             break;
           }
-          default: {
-            console.log(data.event);
-          }
         }
 
         return res.status(StatusCodes.NO_CONTENT);
       }
-      case TwitchEventSubType.Verification: {
+      case EventSubCallbackType.Verification: {
+        //#region  Add EventSub Id if does not already exist
+        if (!wsClient.eventSubIds.includes(data.subscription.id)) {
+          addEventSubIdInWsClient(clientId, data.subscription.id);
+        }
+        //#endregion
+
+        //#region Send Verification CallbackResponseMessageType.VerificationPrediction(Begin|Progress|End)
+        switch (data.subscription.type) {
+          case EventSubType.PredictionBegin: {
+            wsClient.ws.send(
+              getResponseMessage(CallbackResponseMessageType.VerificationPredictionBegin, undefined)
+            );
+            break;
+          }
+          case EventSubType.PredictionProgress: {
+            wsClient.ws.send(
+              getResponseMessage(
+                CallbackResponseMessageType.VerificationPredictionProgress,
+                undefined
+              )
+            );
+            break;
+          }
+          case EventSubType.PredictionEnd: {
+            wsClient.ws.send(
+              getResponseMessage(CallbackResponseMessageType.VerificationPredictionEnd, undefined)
+            );
+            break;
+          }
+        }
+        //#endregion
+
         res.writeHead(StatusCodes.OK, { 'Content-Type': 'text/plain' });
         res.write(data.challenge);
         res.end();
-        wsClient.ws.send(JSON.stringify({ type: 'verification/' + data.subscription.type }));
         return;
       }
-      case TwitchEventSubType.Revocation: {
+      case EventSubCallbackType.Revocation: {
+        //#region Send Reconnect to WsClient
+        wsClient.ws.send(getResponseMessage(BaseResponseMessageType.Reconnect, undefined));
+        //#endregion
         return res.status(StatusCodes.NO_CONTENT);
       }
       default: {
         console.log(`Unknown message type: ${type}`);
-        return res.status(StatusCodes.NO_CONTENT);
+        return res.status(StatusCodes.NOT_FOUND);
       }
     }
-  }
-
-  res.status(StatusCodes.FORBIDDEN);
-});
+    //#endregion
+  })
+);
 
 export default callback;

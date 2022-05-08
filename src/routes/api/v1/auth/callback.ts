@@ -1,119 +1,102 @@
-import { User } from '@prisma/client';
-import fetch from 'cross-fetch';
+import ApiError from '$exceptions/apiError';
+import { prisma } from '$lib/db';
+import getOAuthToken from '$lib/getOAuthToken';
+import getUserData from '$lib/getUserData';
+import handleErrorAsync from '$lib/handleErrorAsync';
+import { generateJWTToken, generateRefreshToken } from '$lib/jwt';
 import { Router } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { prisma } from '../../../../lib/db';
-import { getErrorMessage } from '../../../../lib/error';
-import getEnv from '../../../../lib/getEnv';
-import getScopes from '../../../../lib/getScopes';
-import getUserData from '../../../../lib/getUserInfo';
-import { generateJWTToken, generateRefreshToken } from '../../../../lib/jwt';
-import { Environment } from '../../../../types/env';
-import { OAuthToken, TwitchError, UserData } from '../../../../types/twitch';
 
 const callback = Router();
 
-const getToken = async (code: string, redirectUri: string): Promise<OAuthToken | TwitchError> => {
-  const url = new URL('https://id.twitch.tv/oauth2/token');
+callback.get(
+  '/',
+  handleErrorAsync(async (req, res) => {
+    const { code, scope, error, error_description } = req.query as {
+      [key: string]: string | undefined;
+    };
 
-  url.searchParams.append('client_id', getEnv(Environment.TwitchClientId));
-  url.searchParams.append('client_secret', getEnv(Environment.TwitchSecretKey));
-  url.searchParams.append('redirect_uri', redirectUri);
-  url.searchParams.append('code', code);
-  url.searchParams.append('grant_type', 'authorization_code');
+    //#region Validate
+    if (error) throw new ApiError(StatusCodes.FORBIDDEN, error_description ?? 'Twitch error');
 
-  return await fetch(url.href, { method: 'POST' })
-    .then((r) => r.json())
-    .catch(console.error);
-};
+    if (!code) throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid code');
+    //#endregion
 
-callback.get('/', async (req, res) => {
-  const { code, scope, error, error_description } = req.query as {
-    [key: string]: string | undefined;
-  };
+    //#region Get OAuth Token
+    let host = req.headers.host?.includes('localhost')
+      ? 'http://localhost/api/v1/auth/callback'
+      : 'https://bruhitch.vercel.app/api/v1/auth/callback';
+    const token = await getOAuthToken(code, host);
+    //#endregion
 
-  if (error) return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage(error_description));
+    //#region Get User Info
+    const userInfo = await getUserData(token.access_token);
+    //#endregion
 
-  if (!code) return res.status(StatusCodes.BAD_REQUEST).json(getErrorMessage('invalid code'));
-
-  if (JSON.stringify(scope?.split(' ')?.filter(Boolean)) !== JSON.stringify(getScopes()))
-    return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage('invalid scopes'));
-
-  let host = req.headers.host?.includes('localhost')
-    ? 'http://localhost/api/v1/auth/callback'
-    : 'https://bruhitch.vercel.app/api/v1/auth/callback';
-  const resToken = await getToken(code, host);
-
-  let maybeError = resToken as TwitchError;
-  if (maybeError.status)
-    return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage(maybeError.message));
-  const token = resToken as OAuthToken;
-
-  const resData = await getUserData(token.access_token);
-  maybeError = resData as TwitchError;
-  if (maybeError.status)
-    return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage(maybeError.message));
-  const userInfo = resData as UserData;
-
-  let user: User = await prisma.user.findUnique({ where: { id: userInfo.sub } });
-  if (!user) {
-    user = await prisma.user.create({
-      data: { id: userInfo.sub, username: userInfo.preferred_username, avatar: userInfo.picture }
-    });
-
-    await prisma.twitch.create({
-      data: {
-        accessToken: token.access_token,
-        refreshToken: token.refresh_token,
-        userId: user.id
-      }
-    });
-
-    await prisma.twitchToken.create({
-      data: {
-        userId: user.id
-      }
-    });
-  } else {
-    await prisma.twitch.update({
-      data: {
-        accessToken: token.access_token,
-        refreshToken: token.refresh_token
-      },
+    //#region Get or Create User. Twitch, TwitchToken included
+    let user = await prisma.user.upsert({
       where: {
+        id: userInfo.sub
+      },
+      update: {
+        Twitch: {
+          update: {
+            accessToken: token.access_token,
+            refreshToken: token.refresh_token
+          }
+        },
+        RefreshToken: {
+          delete: true
+        }
+      },
+      create: {
+        id: userInfo.sub,
+        username: userInfo.preferred_username,
+        avatar: userInfo.picture,
+        Twitch: {
+          create: {
+            accessToken: token.access_token,
+            refreshToken: token.refresh_token
+          }
+        },
+        TwitchToken: {
+          create: {}
+        }
+      }
+    });
+    //#endregion
+
+    //#region Generate Tokens
+    let refreshTokenEntity = await prisma.refreshToken.create({
+      data: {
         userId: user.id
       }
     });
 
-    await prisma.refreshToken.delete({ where: { userId: user.id } });
-  }
+    const accessToken = generateJWTToken(user);
+    const refreshToken = generateRefreshToken(refreshTokenEntity.id);
+    //#endregion
 
-  let refreshTokenEntity = await prisma.refreshToken.create({
-    data: {
-      userId: user.id
-    }
-  });
+    //#region Set tokens into cookie
+    res
+      .cookie('at', accessToken.token, {
+        maxAge: accessToken.expiresIn * 1000,
+        path: '/',
+        secure: req.secure,
+        httpOnly: true,
+        sameSite: 'strict'
+      })
+      .cookie('rt', refreshToken.token, {
+        maxAge: refreshToken.expiresIn * 1000,
+        path: '/',
+        secure: req.secure,
+        httpOnly: true,
+        sameSite: 'strict'
+      });
+    //#endregion
 
-  const accessToken = generateJWTToken(user);
-  const refreshToken = generateRefreshToken(refreshTokenEntity.id);
-
-  res
-    .cookie('at', accessToken.token, {
-      maxAge: accessToken.expiresIn * 1000,
-      path: '/',
-      secure: req.secure,
-      httpOnly: true,
-      sameSite: 'strict'
-    })
-    .cookie('rt', refreshToken.token, {
-      maxAge: refreshToken.expiresIn * 1000,
-      path: '/',
-      secure: req.secure,
-      httpOnly: true,
-      sameSite: 'strict'
-    });
-
-  res.status(StatusCodes.PERMANENT_REDIRECT).redirect('/');
-});
+    res.status(StatusCodes.PERMANENT_REDIRECT).redirect('/');
+  })
+);
 
 export default callback;

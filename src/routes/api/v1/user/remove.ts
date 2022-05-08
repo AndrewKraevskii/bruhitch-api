@@ -1,40 +1,51 @@
+import ApiError from '$exceptions/apiError';
+import { prisma } from '$lib/db';
+import handleErrorAsync from '$lib/handleErrorAsync';
+import { getDataFromJWTToken, verifyJWTToken } from '$lib/jwt';
+import revokeAccessToken from '$lib/revokeAccessToken';
 import { User } from '@prisma/client';
 import { Router } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { prisma } from '../../../../lib/db';
-import { getErrorMessage } from '../../../../lib/error';
-import { getDataFromJWTToken, verifyJWTToken } from '../../../../lib/jwt';
-import revokeAccessToken from '../../../../lib/revokeAccessToken';
 
 const remove = Router();
 
-remove.post('/', async (req, res) => {
-  const { at } = req.cookies as { at: string | undefined };
-  if (!at) return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage('incorrect access_token'));
+remove.delete(
+  '/',
+  handleErrorAsync(async (req, res) => {
+    //#region Check for access token
+    const { at } = req.cookies as { [key: string]: string | undefined };
+    if (!at) throw new ApiError(StatusCodes.FORBIDDEN, 'Incorrect access token');
+    //#endregion
 
-  if (!verifyJWTToken(at))
-    return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage('invalid access_token'));
+    //#region Validate access token
+    if (!verifyJWTToken(at)) throw new ApiError(StatusCodes.FORBIDDEN, 'Invalid access token');
+    //#endregion
 
-  const user = getDataFromJWTToken<User>(at);
+    let user = getDataFromJWTToken<User>(at);
 
-  try {
-    const tokens = await prisma.twitch.findUnique({
-      where: { userId: user.id },
-      select: {
-        accessToken: true
+    //#region Delete user and revoke twitch access token
+    try {
+      const userEntity = await prisma.user.delete({
+        where: { id: user.id },
+        select: {
+          Twitch: {
+            select: {
+              accessToken: true
+            }
+          }
+        }
+      });
+      if (userEntity && userEntity.Twitch) {
+        await revokeAccessToken(userEntity.Twitch.accessToken);
       }
-    });
-    if (tokens && tokens.accessToken) {
-      await revokeAccessToken(tokens.accessToken);
-    }
-  } catch (e) {}
+    } catch (e) {}
+    //#endregion
 
-  try {
-    await prisma.user.delete({ where: { id: user.id } });
+    //#region Delete user
+    //#endregion
+
     res.status(StatusCodes.OK).json(user);
-  } catch (e) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(getErrorMessage('error on delete user'));
-  }
-});
+  })
+);
 
 export default remove;

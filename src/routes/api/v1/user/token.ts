@@ -1,88 +1,67 @@
+import ApiError from '$exceptions/apiError';
+import { prisma } from '$lib/db';
+import handleErrorAsync from '$lib/handleErrorAsync';
+import { getDataFromJWTToken, verifyJWTToken } from '$lib/jwt';
+import { TwitchToken, User } from '@prisma/client';
 import { Router } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { prisma } from '../../../../lib/db';
-import { getErrorMessage } from '../../../../lib/error';
-import getEnv from '../../../../lib/getEnv';
-import getScopes from '../../../../lib/getScopes';
-import refreshToken from '../../../../lib/refreshToken';
-import { Environment } from '../../../../types/env';
-import { RefreshToken, TwitchError } from '../../../../types/twitch';
 
 const token = Router();
 
-token.get('/', async (req, res) => {
-  const { token } = req.query as { token: string | undefined };
-  if (!token) return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage('incorrect token'));
+token.get(
+  '/',
+  handleErrorAsync(async (req, res) => {
+    //#region Check for access token
+    const { at } = req.cookies as { [key: string]: string | undefined };
+    if (!at) throw new ApiError(StatusCodes.FORBIDDEN, 'Incorrect access token');
+    //#endregion
 
-  let user: {
-    id: string;
-    username: string;
-    Twitch: {
-      refreshToken: string;
-    };
-  };
-  let rt: string;
-  try {
-    const twitchToken = await prisma.twitchToken.findUnique({
-      where: { id: token },
-      select: {
-        User: {
-          select: {
-            id: true,
-            username: true,
-            Twitch: {
-              select: {
-                refreshToken: true
-              }
-            }
-          }
-        }
+    //#region Validate access token
+    if (!verifyJWTToken(at)) throw new ApiError(StatusCodes.FORBIDDEN, 'Invalid access token');
+    //#endregion
+
+    let user = getDataFromJWTToken<User>(at);
+
+    //#region Get token
+    let token = await prisma.twitchToken.findUnique({
+      where: {
+        userId: user.id
       }
     });
-    if (!twitchToken)
-      return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage('invalid token'));
-    user = twitchToken.User;
-    rt = twitchToken.User.Twitch.refreshToken;
-  } catch (e) {
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json(getErrorMessage('error on get token'));
-  }
+    //#endregion
 
-  const refreshResult = await refreshToken(rt);
-  const error = refreshResult as TwitchError;
-  const data = refreshResult as RefreshToken;
-  if (error.status) {
-    return res.status(error.status).json(getErrorMessage(error.message));
-  }
+    res.status(StatusCodes.OK).json({ token });
+  })
+);
 
-  let hasNotRequiredScope = false;
-  getScopes().forEach((scope) => {
-    if (hasNotRequiredScope) return;
-    hasNotRequiredScope = !data.scope.includes(scope);
-  });
+token.patch(
+  '/',
+  handleErrorAsync(async (req, res) => {
+    //#region Check for access token
+    const { at } = req.cookies as { [key: string]: string | undefined };
+    if (!at) throw new ApiError(StatusCodes.FORBIDDEN, 'Incorrect access token');
+    //#endregion
 
-  if (hasNotRequiredScope) {
-    return res.redirect('/api/v1/auth/logout');
-  }
+    //#region Validate access token
+    if (!verifyJWTToken(at)) throw new ApiError(StatusCodes.FORBIDDEN, 'Invalid access token');
+    //#endregion
 
-  await prisma.twitch.update({
-    data: {
-      accessToken: data.access_token,
-      refreshToken: data.refresh_token
-    },
-    where: {
-      userId: user.id
-    }
-  });
+    let user = getDataFromJWTToken<User>(at);
 
-  res.status(StatusCodes.OK).json({
-    accessToken: data.access_token,
-    userId: user.id,
-    user: user.username,
-    clientId: getEnv(Environment.TwitchClientId),
-    scope: data.scope
-  });
-});
+    //#region Get token
+    let token: TwitchToken;
+    try {
+      token = await prisma.twitchToken.delete({
+        where: {
+          userId: user.id
+        }
+      });
+    } catch (e) {}
+    token = await prisma.twitchToken.create({ data: { userId: user.id } });
+    //#endregion
+
+    res.status(StatusCodes.OK).json({ token });
+  })
+);
 
 export default token;

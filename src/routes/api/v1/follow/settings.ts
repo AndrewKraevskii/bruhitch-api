@@ -1,19 +1,23 @@
+import ApiError from '$exceptions/apiError';
+import { prisma } from '$lib/db';
+import handleErrorAsync from '$lib/handleErrorAsync';
+import { getDataFromJWTToken, verifyJWTToken } from '$lib/jwt';
 import { FollowSettings, User } from '@prisma/client';
 import { Router } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { prisma } from '../../../../lib/db';
-import { getErrorMessage } from '../../../../lib/error';
-import { getDataFromJWTToken, verifyJWTToken } from '../../../../lib/jwt';
 
 const settings = Router();
 
-settings.get('/', async (req, res) => {
-  const { token } = req.query as { token: string };
-  if (!token) return res.status(StatusCodes.BAD_REQUEST).json(getErrorMessage('undefined token'));
+settings.get(
+  '/',
+  handleErrorAsync(async (req, res) => {
+    //#region Check for twitch token
+    const { token } = req.query as { [key: string]: string | undefined };
+    if (!token) throw new ApiError(StatusCodes.FORBIDDEN, 'Incorrect token');
+    //#endregion
 
-  let followSettings: FollowSettings;
-  try {
-    const t = await prisma.twitchToken.findUnique({
+    //#region Get follow settings by twitch token
+    const twitchToken = await prisma.twitchToken.findUnique({
       where: {
         id: token
       },
@@ -25,96 +29,70 @@ settings.get('/', async (req, res) => {
         }
       }
     });
-    if (!t) return res.status(StatusCodes.NOT_FOUND).json({});
+    if (!twitchToken) throw new ApiError(StatusCodes.FORBIDDEN, 'Invalid token');
+    const followSettings = twitchToken.User.FollowSettings;
+    //#endregion
 
-    followSettings = t.User.FollowSettings;
-  } catch (e) {
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json(getErrorMessage('problem with get follow settings'));
-  }
-
-  if (followSettings) {
-    delete followSettings.id;
-    delete followSettings.userId;
-  }
-
-  res.status(StatusCodes.OK).json(followSettings);
-});
-
-settings.post('/', async (req, res) => {
-  const { at } = req.cookies as { at: string | undefined };
-  if (!at) return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage('incorrect access_token'));
-
-  if (!verifyJWTToken(at))
-    return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage('invalid access_token'));
-
-  const atData = getDataFromJWTToken<User>(at);
-
-  const data: FollowSettings = req.body;
-
-  data.id = undefined;
-  data.userId = undefined;
-
-  let followSettings: FollowSettings;
-  try {
-    const user = await prisma.user.findUnique({
-      where: {
-        id: atData.id
-      },
-      select: {
-        id: true,
-        FollowSettings: true
-      }
-    });
-    if (!user)
-      return res
-        .status(StatusCodes.INTERNAL_SERVER_ERROR)
-        .json(getErrorMessage('problem with get user'));
-    if (user.FollowSettings) {
-      followSettings = user.FollowSettings;
-    } else {
-      followSettings = await prisma.followSettings.create({
-        data: {
-          userId: user.id
-        }
-      });
+    //#region Delete private fields
+    if (followSettings) {
+      (followSettings.id as any) = undefined;
+      (followSettings.userId as any) = undefined;
     }
-  } catch (e) {
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json(getErrorMessage('problem with get follow settings'));
-  }
+    //#endregion
 
-  let newData: any = {};
+    res.status(StatusCodes.OK).json(followSettings);
+  })
+);
 
-  Object.keys(data)
-    .filter((k) => k in followSettings)
-    .forEach((k) => {
+settings.post(
+  '/',
+  handleErrorAsync(async (req, res) => {
+    //#region Check for access token
+    const { at } = req.cookies as { [key: string]: string | undefined };
+    if (!at) throw new ApiError(StatusCodes.FORBIDDEN, 'Incorrect access token');
+    //#endregion
+
+    //#region Validate access token
+    if (!verifyJWTToken(at)) throw new ApiError(StatusCodes.FORBIDDEN, 'Invalid access token');
+    //#endregion
+
+    const atData = getDataFromJWTToken<User>(at);
+
+    //#region Update or subscribe settings
+    const data: FollowSettings = req.body;
+
+    (data as any).id = undefined;
+    (data as any).userId = undefined;
+
+    let newData: any = {};
+
+    Object.keys(data).forEach((k) => {
       newData[k] = (data as any)[k];
     });
 
-  delete newData.id, delete newData.userId;
-
-  try {
-    followSettings = await prisma.followSettings.update({
-      data: {
-        ...newData
-      },
+    const followSettings = await prisma.followSettings.upsert({
       where: {
-        id: followSettings.id
+        userId: atData.id
+      },
+      create: {
+        ...newData,
+        userId: atData.id
+      },
+      update: {
+        ...newData
       }
     });
-  } catch (e) {
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json(getErrorMessage('problem with save follow settings'));
-  }
+    //#endregion
 
-  delete followSettings.id;
-  delete followSettings.userId;
+    //#region Delete private fields
+    if (followSettings) {
+      (followSettings.id as any) = undefined;
+      (followSettings.userId as any) = undefined;
+    }
+    //#endregion
 
-  res.status(StatusCodes.OK).json(followSettings);
-});
+    res.status(StatusCodes.OK).json(followSettings);
+  })
+);
 
 export default settings;

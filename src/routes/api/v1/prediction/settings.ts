@@ -1,19 +1,23 @@
+import ApiError from '$exceptions/apiError';
+import { prisma } from '$lib/db';
+import handleErrorAsync from '$lib/handleErrorAsync';
+import { getDataFromJWTToken, verifyJWTToken } from '$lib/jwt';
 import { PredictionSettings, User } from '@prisma/client';
 import { Router } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { prisma } from '../../../../lib/db';
-import { getErrorMessage } from '../../../../lib/error';
-import { getDataFromJWTToken, verifyJWTToken } from '../../../../lib/jwt';
 
 const settings = Router();
 
-settings.get('/', async (req, res) => {
-  const { token } = req.query as { token: string };
-  if (!token) return res.status(StatusCodes.BAD_REQUEST).json(getErrorMessage('undefined token'));
+settings.get(
+  '/',
+  handleErrorAsync(async (req, res) => {
+    //#region Check for twitch token
+    const { token } = req.query as { [key: string]: string | undefined };
+    if (!token) throw new ApiError(StatusCodes.FORBIDDEN, 'Incorrect token');
+    //#endregion
 
-  let predictionSettings: PredictionSettings;
-  try {
-    const t = await prisma.twitchToken.findUnique({
+    //#region Get prediction settings by twitch token
+    const twitchToken = await prisma.twitchToken.findUnique({
       where: {
         id: token
       },
@@ -25,96 +29,70 @@ settings.get('/', async (req, res) => {
         }
       }
     });
-    if (!t) return res.status(StatusCodes.NOT_FOUND).json({});
+    if (!twitchToken) throw new ApiError(StatusCodes.FORBIDDEN, 'Invalid token');
+    const predictionSettings = twitchToken.User.PredictionSettings;
+    //#endregion
 
-    predictionSettings = t.User.PredictionSettings;
-  } catch (e) {
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json(getErrorMessage('problem with get follow settings'));
-  }
-
-  if (predictionSettings) {
-    delete predictionSettings.id;
-    delete predictionSettings.userId;
-  }
-
-  res.status(StatusCodes.OK).json(predictionSettings);
-});
-
-settings.post('/', async (req, res) => {
-  const { at } = req.cookies as { at: string | undefined };
-  if (!at) return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage('incorrect access_token'));
-
-  if (!verifyJWTToken(at))
-    return res.status(StatusCodes.FORBIDDEN).json(getErrorMessage('invalid access_token'));
-
-  const atData = getDataFromJWTToken<User>(at);
-
-  const data: PredictionSettings = req.body;
-
-  data.id = undefined;
-  data.userId = undefined;
-
-  let predictionSettings: PredictionSettings;
-  try {
-    const user = await prisma.user.findUnique({
-      where: {
-        id: atData.id
-      },
-      select: {
-        id: true,
-        PredictionSettings: true
-      }
-    });
-    if (!user)
-      return res
-        .status(StatusCodes.INTERNAL_SERVER_ERROR)
-        .json(getErrorMessage('problem with get user'));
-    if (user.PredictionSettings) {
-      predictionSettings = user.PredictionSettings;
-    } else {
-      predictionSettings = await prisma.predictionSettings.create({
-        data: {
-          userId: user.id
-        }
-      });
+    //#region Delete private fields
+    if (predictionSettings) {
+      (predictionSettings.id as any) = undefined;
+      (predictionSettings.userId as any) = undefined;
     }
-  } catch (e) {
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json(getErrorMessage('problem with get follow settings'));
-  }
+    //#endregion
 
-  let newData: any = {};
+    res.status(StatusCodes.OK).json(predictionSettings);
+  })
+);
 
-  Object.keys(data)
-    .filter((k) => k in predictionSettings)
-    .forEach((k) => {
+settings.post(
+  '/',
+  handleErrorAsync(async (req, res) => {
+    //#region Check for access token
+    const { at } = req.cookies as { [key: string]: string | undefined };
+    if (!at) throw new ApiError(StatusCodes.FORBIDDEN, 'Incorrect access token');
+    //#endregion
+
+    //#region Validate access token
+    if (!verifyJWTToken(at)) throw new ApiError(StatusCodes.FORBIDDEN, 'Invalid access token');
+    //#endregion
+
+    const atData = getDataFromJWTToken<User>(at);
+
+    //#region Update or subscribe settings
+    const data: PredictionSettings = req.body;
+
+    (data as any).id = undefined;
+    (data as any).userId = undefined;
+
+    let newData: any = {};
+
+    Object.keys(data).forEach((k) => {
       newData[k] = (data as any)[k];
     });
 
-  delete newData.id, delete newData.userId;
-
-  try {
-    predictionSettings = await prisma.predictionSettings.update({
-      data: {
-        ...newData
-      },
+    const predictionSettings = await prisma.predictionSettings.upsert({
       where: {
-        id: predictionSettings.id
+        userId: atData.id
+      },
+      create: {
+        ...newData,
+        userId: atData.id
+      },
+      update: {
+        ...newData
       }
     });
-  } catch (e) {
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json(getErrorMessage('problem with save follow settings'));
-  }
+    //#endregion
 
-  delete predictionSettings.id;
-  delete predictionSettings.userId;
+    //#region Delete private fields
+    if (predictionSettings) {
+      (predictionSettings.id as any) = undefined;
+      (predictionSettings.userId as any) = undefined;
+    }
+    //#endregion
 
-  res.status(StatusCodes.OK).json(predictionSettings);
-});
+    res.status(StatusCodes.OK).json(predictionSettings);
+  })
+);
 
 export default settings;

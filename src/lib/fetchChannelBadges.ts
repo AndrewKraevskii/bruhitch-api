@@ -1,13 +1,11 @@
-import fetch from 'cross-fetch';
-import { TwitchBadge } from '../types/badge';
+import { TwitchBadge } from '$types/badge';
 import getHeaders from './getHeaders';
 
 const fetchChannelBadges = async (
   broadcasterId: string | number,
-  clientId: string,
   accessToken: string
 ): Promise<TwitchBadge[]> => {
-  const headers = getHeaders(clientId, accessToken);
+  const headers = getHeaders(accessToken);
 
   const chatBadges: { data: TwitchBadge[] } = await fetch(
     'https://api.twitch.tv/helix/chat/badges?broadcaster_id=' + broadcasterId,

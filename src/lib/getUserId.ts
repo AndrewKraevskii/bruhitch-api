@@ -1,12 +1,10 @@
-import fetch from 'cross-fetch';
 import getHeaders from './getHeaders';
 
 const getUserId = async (
   channel: string,
-  clientId: string,
   accessToken: string
 ): Promise<string | undefined> => {
-  const headers = getHeaders(clientId, accessToken);
+  const headers = getHeaders(accessToken);
 
   const broadcaster: {
     data: { id: string }[];
