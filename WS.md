@@ -67,7 +67,7 @@
 2. Subscribe on eventSub channel.prediction.progress
 3. Subscribe on eventSub channel.prediction.end
 
-#### Subscribe on Follow EventSub
+#### Subscribe on Prediction Begin|Progress|End EventSub
 
 1. Get WsClient
 2. Check subscribe types against an existing type
