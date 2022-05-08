@@ -63,6 +63,7 @@ callback.post(
 
     const type = req.headers[EventSubHeader.Type];
 
+    console.log('Follow', data.event)
     switch (type) {
       case EventSubCallbackType.Notification: {
         //#region  Add EventSub Id if does not already exist

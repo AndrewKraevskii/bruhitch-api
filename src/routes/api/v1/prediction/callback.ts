@@ -85,6 +85,7 @@ callback.post(
         }
         //#endregion
 
+        console.log('Prediction', data.event)
         switch (data.subscription.type) {
           case EventSubType.PredictionBegin: {
             wsClient.ws.send(

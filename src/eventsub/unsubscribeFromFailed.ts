@@ -9,6 +9,7 @@ const unsubscribeFromFailed = async (isForce: boolean = false) => {
   if (!accessToken) {
     return console.log('[ERR] Get access token error on unsubscribeFromFailed');
   }
+  console.log(accessToken)
 
   const res: {
     data: {
