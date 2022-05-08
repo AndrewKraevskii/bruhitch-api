@@ -3,6 +3,7 @@ import { config } from 'dotenv';
 import http from 'http';
 import 'module-alias/register';
 import createExpressServer from './express';
+import unsubscribe from './unsubscribe';
 import createWebSocketServer from './ws';
 
 // Load environment variables from .env
@@ -17,6 +18,7 @@ global.Headers = Headers;
 const app = createExpressServer();
 const server = http.createServer(app);
 const wsServer = createWebSocketServer(server);
+unsubscribe(server);
 //#endregion
 
 wsServer.once('listening', () =>
