@@ -358,3 +358,284 @@
   scope: TwitchScope[];
 }
 ```
+
+## `GET` /api/v1/subscribe/settings
+
+### How to use
+
+> Get subscribe config
+
+### Query parameters
+
+- `token` - Twitch token
+
+### Description
+
+1. Check for twitch token
+2. Get subscribe settings by twitch token
+3. Delete private fields
+4. Send subscribe settings
+
+### Result
+
+- `200` - Result Object
+- `403` - on incorrect twitch token
+- `403` - on invalid twitch token
+
+#### Result Object
+
+```typescript
+SubscribeSettings || null;
+```
+
+## `POST` /api/v1/subscribe/settings
+
+### How to use
+
+> Save subscribe config
+
+### Cookies
+
+- `at` - Access token
+
+### Description
+
+1. Check for access token
+2. Validate access token
+3. Update or subscribe settings
+4. Delete private fields
+5. Send subscribe settings
+
+### Result
+
+- `200` - Result Object
+- `403` - on incorrect access token
+- `403` - on invalid access token
+
+#### Result Object
+
+```typescript
+SubscribeSettings || null;
+```
+
+## `GET` /api/v1/follow/settings
+
+### How to use
+
+> Get follow config
+
+### Query parameters
+
+- `token` - Twitch token
+
+### Description
+
+1. Check for twitch token
+2. Get follow settings by twitch token
+3. Delete private fields
+4. Send follow settings
+
+### Result
+
+- `200` - Result Object
+- `403` - on incorrect twitch token
+- `403` - on invalid twitch token
+
+#### Result Object
+
+```typescript
+FollowSettings || null;
+```
+
+## `POST` /api/v1/follow/settings
+
+### How to use
+
+> Save follow config
+
+### Cookies
+
+- `at` - Access token
+
+### Description
+
+1. Check for access token
+2. Validate access token
+3. Update or follow settings
+4. Delete private fields
+5. Send follow settings
+
+### Result
+
+- `200` - Result Object
+- `403` - on incorrect access token
+- `403` - on invalid access token
+
+#### Result Object
+
+```typescript
+FollowSettings || null;
+```
+
+## `POST` /api/v1/follow/callback
+
+### How to use
+
+> Uses as EventSub callback on channel.follow subscription
+
+### Query parameters
+
+- `clientId` - WsClient Id
+
+### Description
+
+1. Check for clientId
+2. Verify message
+3. Validate clientId
+4. Check for type of subscription
+5. Check for type of message
+
+#### On Notification
+
+1. Add EventSub Id if does not already exist
+2. Check notification life time
+3. Send event to client
+
+#### On Verification
+
+1. Add EventSub Id if does not already exist
+2. Send Verification CallbackResponseMessageType.VerificationFollow
+3. Set Status Code as 200
+4. Set Content-Type as text/plain
+5. Set content as `data.challenge`
+
+#### On Revocation
+
+1. Send Reconnect to WsClient
+2. Send No Content
+
+#### On Undefined
+
+1. Log type
+2. Send Not Found
+
+### Result
+
+- `202` - on revocation
+- `202` - on notification is over lifetime
+- `400` - on incorrect clientId
+- `400` - on incorrect subscription type
+- `403` - on invalid clientId
+- `403` - on failed verification
+- `404` - on undefined message type
+
+## `GET` /api/v1/prediction/settings
+
+### How to use
+
+> Get prediction config
+
+### Query parameters
+
+- `token` - Twitch token
+
+### Description
+
+1. Check for twitch token
+2. Get prediction settings by twitch token
+3. Delete private fields
+4. Send prediction settings
+
+### Result
+
+- `200` - Result Object
+- `403` - on incorrect twitch token
+- `403` - on invalid twitch token
+
+#### Result Object
+
+```typescript
+PredictionSettings || null;
+```
+
+## `POST` /api/v1/prediction/settings
+
+### How to use
+
+> Save prediction config
+
+### Cookies
+
+- `at` - Access token
+
+### Description
+
+1. Check for access token
+2. Validate access token
+3. Update or prediction settings
+4. Delete private fields
+5. Send prediction settings
+
+### Result
+
+- `200` - Result Object
+- `403` - on incorrect access token
+- `403` - on invalid access token
+
+#### Result Object
+
+```typescript
+PredictionSettings || null;
+```
+
+## `POST` /api/v1/prediction/callback
+
+### How to use
+
+> Uses as EventSub callback on channel.prediction.(begin|progress|end) subscription
+
+### Query parameters
+
+- `clientId` - WsClient Id
+
+### Description
+
+1. Check for clientId
+2. Verify message
+3. Validate clientId
+4. Check for type of subscription
+5. Check for type of message
+
+#### On Notification
+
+1. Add EventSub Id if does not already exist
+2. Check notification life time
+3. Send event to client
+
+#### On Verification
+
+1. Add EventSub Id if does not already exist
+2. Send Verification CallbackResponseMessageType.VerificationPrediction(Begin|Progress|End)
+3. Set Status Code as 200
+4. Set Content-Type as text/plain
+5. Set content as `data.challenge`
+
+#### On Revocation
+
+1. Send Reconnect to WsClient
+2. Send No Content
+
+#### On Undefined
+
+1. Log type
+2. Send Not Found
+
+### Result
+
+- `202` - on revocation
+- `202` - on notification is over lifetime
+- `400` - on incorrect clientId
+- `400` - on incorrect subscription type
+- `403` - on invalid clientId
+- `403` - on failed verification
+- `404` - on undefined message type

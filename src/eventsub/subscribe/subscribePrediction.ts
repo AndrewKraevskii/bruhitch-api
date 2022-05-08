@@ -31,7 +31,7 @@ const subscribePrediction = async (id: string, ws: WebSocket) => {
   //#endregion
 
   //#region Get App access token
-  const accessToken = getAppAccessToken();
+  const accessToken = await getAppAccessToken();
   if (!accessToken) return ws.send(getErrorMessage('Error on get app access token'));
   //#endregion
 

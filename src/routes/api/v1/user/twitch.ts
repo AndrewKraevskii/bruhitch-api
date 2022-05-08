@@ -12,7 +12,6 @@ twitch.get(
   '/',
   handleErrorAsync(async (req, res) => {
     //#region Check for twitch token
-
     const { token } = req.query as { [key: string]: string | undefined };
     if (!token) throw new ApiError(StatusCodes.FORBIDDEN, 'Incorrect token');
     //#endregion

@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 
 export const prisma: PrismaClient =
-  _prisma ||
+  global._prisma ||
   new PrismaClient({
     log: []
   });

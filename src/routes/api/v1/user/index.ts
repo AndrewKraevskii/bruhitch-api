@@ -1,7 +1,7 @@
+import remove from '$routes/api/v1/user/remove';
+import token from '$routes/api/v1/user/token';
+import twitch from '$routes/api/v1/user/twitch';
 import { Router } from 'express';
-import remove from './remove';
-import token from './token';
-import twitch from './twitch';
 
 const user = Router();
 

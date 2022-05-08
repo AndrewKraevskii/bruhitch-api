@@ -67,7 +67,7 @@ export type EventSubPredictionEndData = {
 
 export type EventSubData = EventSubFollowData | EventSubPredictionData | EventSubPredictionEndData;
 
-export type TwitchEventSubResponse = {
+export type EventSubResponse = {
   challenge: string;
   subscription: {
     id: string;
