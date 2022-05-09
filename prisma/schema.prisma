@@ -130,6 +130,7 @@ model DonateSettings {
   anonymous          String  @default("Anonymous") @db.VarChar(32)
   image              String  @default("https://i.postimg.cc/9F2qyTQc/photo-2022-05-05-09-31-08.jpg") @db.VarChar(256)
   hideDelay          Int     @default(5000)
+  volume             Float   @default(0.5)
   font               String  @default("") @db.VarChar(32)
   fontSize           Int     @default(16)
   disablePadding     Boolean @default(false)
