@@ -2,7 +2,7 @@ import ApiError from '$exceptions/apiError';
 import { prisma } from '$lib/db';
 import handleErrorAsync from '$lib/handleErrorAsync';
 import { getDataFromJWTToken, verifyJWTToken } from '$lib/jwt';
-import { SubscribeSettings, User } from '@prisma/client';
+import { DonateSettings, User } from '@prisma/client';
 import { Router } from 'express';
 import { StatusCodes } from 'http-status-codes';
 
@@ -16,7 +16,7 @@ settings.get(
     if (!token) throw new ApiError(StatusCodes.FORBIDDEN, 'Incorrect token');
     //#endregion
 
-    //#region Get subscribe settings by twitch token
+    //#region Get donate settings by twitch token
     const twitchToken = await prisma.twitchToken.findUnique({
       where: {
         id: token
@@ -24,23 +24,23 @@ settings.get(
       select: {
         User: {
           select: {
-            SubscribeSettings: true
+            DonateSettings: true
           }
         }
       }
     });
     if (!twitchToken) throw new ApiError(StatusCodes.FORBIDDEN, 'Invalid token');
-    const subscribeSettings = twitchToken.User.SubscribeSettings;
+    const donateSettings = twitchToken.User.DonateSettings;
     //#endregion
 
     //#region Delete private fields
-    if (subscribeSettings) {
-      (subscribeSettings.id as any) = undefined;
-      (subscribeSettings.userId as any) = undefined;
+    if (donateSettings) {
+      (donateSettings.id as any) = undefined;
+      (donateSettings.userId as any) = undefined;
     }
     //#endregion
 
-    res.status(StatusCodes.OK).json(subscribeSettings);
+    res.status(StatusCodes.OK).json(donateSettings);
   })
 );
 
@@ -58,8 +58,8 @@ settings.post(
 
     const atData = getDataFromJWTToken<User>(at);
 
-    //#region Update or create subscribe settings
-    const data: SubscribeSettings = req.body;
+    //#region Update or create donate settings
+    const data: DonateSettings = req.body;
 
     (data as any).id = undefined;
     (data as any).userId = undefined;
@@ -70,7 +70,7 @@ settings.post(
       newData[k] = (data as any)[k];
     });
 
-    const subscribeSettings = await prisma.subscribeSettings.upsert({
+    const donateSettings = await prisma.donateSettings.upsert({
       where: {
         userId: atData.id
       },
@@ -85,13 +85,13 @@ settings.post(
     //#endregion
 
     //#region Delete private fields
-    if (subscribeSettings) {
-      (subscribeSettings.id as any) = undefined;
-      (subscribeSettings.userId as any) = undefined;
+    if (donateSettings) {
+      (donateSettings.id as any) = undefined;
+      (donateSettings.userId as any) = undefined;
     }
     //#endregion
 
-    res.status(StatusCodes.OK).json(subscribeSettings);
+    res.status(StatusCodes.OK).json(donateSettings);
   })
 );
 

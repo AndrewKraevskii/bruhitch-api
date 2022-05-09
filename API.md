@@ -403,7 +403,7 @@ SubscribeSettings | null;
 
 1. Check for access token
 2. Validate access token
-3. Update or subscribe settings
+3. Update or create subscribe settings
 4. Delete private fields
 5. Send subscribe settings
 
@@ -462,7 +462,7 @@ FollowSettings | null;
 
 1. Check for access token
 2. Validate access token
-3. Update or follow settings
+3. Update or create follow settings
 4. Delete private fields
 5. Send follow settings
 
@@ -573,7 +573,7 @@ PredictionSettings | null;
 
 1. Check for access token
 2. Validate access token
-3. Update or prediction settings
+3. Update or create prediction settings
 4. Delete private fields
 5. Send prediction settings
 
@@ -710,4 +710,63 @@ PredictionSettings | null;
 {
   accessToken: string | null;
 }
+```
+
+## `GET` /api/v1/donationalerts/settings
+
+### How to use
+
+> Get donate config
+
+### Query parameters
+
+- `token` - Twitch token
+
+### Description
+
+1. Check for twitch token
+2. Get donate settings by twitch token
+3. Delete private fields
+4. Send donate settings
+
+### Result
+
+- `200` - Result Object
+- `403` - on incorrect twitch token
+- `403` - on invalid twitch token
+
+#### Result Object
+
+```typescript
+DonateSettings | null;
+```
+
+## `POST` /api/v1/donationalerts/settings
+
+### How to use
+
+> Save donate config
+
+### Cookies
+
+- `at` - Access token
+
+### Description
+
+1. Check for access token
+2. Validate access token
+3. Update or create donate settings
+4. Delete private fields
+5. Send donate settings
+
+### Result
+
+- `200` - Result Object
+- `403` - on incorrect access token
+- `403` - on invalid access token
+
+#### Result Object
+
+```typescript
+DonateSettings | null;
 ```

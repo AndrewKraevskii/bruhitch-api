@@ -58,7 +58,7 @@ settings.post(
 
     const atData = getDataFromJWTToken<User>(at);
 
-    //#region Update or subscribe settings
+    //#region Update or create subscribe settings
     const data: FollowSettings = req.body;
 
     (data as any).id = undefined;
