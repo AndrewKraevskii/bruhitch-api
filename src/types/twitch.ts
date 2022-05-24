@@ -26,7 +26,7 @@ export type OAuthToken = {
   token_type: string;
 };
 
-export type RefreshToken = Omit<Omit<OAuthToken, 'id_token'>, 'nonce'>;
+export type RefreshToken = Omit<OAuthToken, 'id_token' | 'nonce'>;
 
 export type TwitchError = { status: number; message: string };
 
